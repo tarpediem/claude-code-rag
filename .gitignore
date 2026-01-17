@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+
+# ChromaDB data
+*.db
+chroma/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dev scripts (local only)
+assets/*.tape
+assets/*_standalone.py
+assets/run_*.sh
+assets/record_*.sh
