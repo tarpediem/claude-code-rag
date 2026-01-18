@@ -118,7 +118,13 @@ def get_embedding(text: str, use_cache: bool = True) -> list:
         json={"model": EMBED_MODEL, "prompt": text},
         timeout=30
     )
-    embedding = resp.json()["embedding"]
+    resp.raise_for_status()
+    data = resp.json()
+
+    if "embedding" not in data:
+        raise ValueError(f"Ollama response missing 'embedding' key. Got: {list(data.keys())}")
+
+    embedding = data["embedding"]
 
     # Cache it
     if use_cache:
@@ -156,7 +162,13 @@ def get_embeddings_batch(texts: list[str], use_cache: bool = True) -> list[list]
             json={"model": EMBED_MODEL, "input": uncached_texts},
             timeout=120  # Longer timeout for batch
         )
-        embeddings = resp.json()["embeddings"]
+        resp.raise_for_status()
+        data = resp.json()
+
+        if "embeddings" not in data:
+            raise ValueError(f"Ollama response missing 'embeddings' key. Got: {list(data.keys())}")
+
+        embeddings = data["embeddings"]
 
         # Store in results and cache
         for idx, embedding in zip(uncached_indices, embeddings):

@@ -62,19 +62,49 @@ Add to `~/.claude.json` under your project:
 }
 ```
 
-Restart Claude Code. You now have 9 native tools:
+Restart Claude Code. You now have 12 native tools:
 
 | Tool | Description |
 |------|-------------|
 | `rag_search` | Semantic search in memory (with optional type filter) |
 | `rag_index` | Index files or directories |
 | `rag_store` | Manually store a memory with type/tags |
+| `rag_sync` | Sync watched files (detects changes, reindexes only if modified) |
 | `rag_capture` | Auto-capture from Claude Code sessions |
 | `rag_export` | Export memories to AGENTS.md/CLAUDE.md/GEMINI.md etc. |
 | `rag_list` | List memories with filtering |
 | `rag_forget` | Delete memories by query or ID |
+| `rag_backup` | Export all memories to JSON backup |
+| `rag_restore` | Restore memories from JSON backup |
 | `rag_stats` | Show memory statistics |
 | `rag_health` | Check Ollama/ChromaDB status |
+
+## Auto-RAG in CLAUDE.md (Recommended)
+
+Add this to your `CLAUDE.md` to make Claude **automatically** use the RAG:
+
+```markdown
+## RAG Local (UTILISER AUTOMATIQUEMENT)
+
+Un système RAG est disponible via MCP. **Tu DOIS l'utiliser PROACTIVEMENT** :
+
+### Quand utiliser le RAG :
+- **TOUJOURS chercher d'abord** → `rag_search` AVANT de demander quoi que ce soit
+- **Contexte sur n'importe quel sujet** → Le RAG contient l'historique de tout
+- **Problème/bug** → Vérifier si on l'a déjà résolu avant
+- **Préférences utilisateur** → Les choix passés sont dans le RAG
+
+### Maintenance :
+- **Début de session** : `rag_sync` pour synchroniser ce fichier
+- **Après modif de ce fichier** : `rag_sync` pour mettre à jour l'index
+- **Nouvelle décision importante** : `rag_store` pour la sauvegarder
+```
+
+This tells Claude to:
+1. **Search the RAG first** before asking you anything
+2. **Check history** for previously solved problems
+3. **Sync** at the start of each session
+4. **Store** important decisions for future reference
 
 ## Usage Examples
 
