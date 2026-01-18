@@ -84,13 +84,13 @@ def get_collection(scope: str = SCOPE_PROJECT):
 
 
 def get_collections_for_scope(scope: str) -> list:
-    """Get list of collections to query based on scope"""
+    """Get list of (collection, scope_name) tuples based on scope"""
     if scope == SCOPE_ALL:
-        return [get_collection(SCOPE_PROJECT), get_collection(SCOPE_GLOBAL)]
+        return [(get_collection(SCOPE_PROJECT), SCOPE_PROJECT), (get_collection(SCOPE_GLOBAL), SCOPE_GLOBAL)]
     elif scope == SCOPE_GLOBAL:
-        return [get_collection(SCOPE_GLOBAL)]
+        return [(get_collection(SCOPE_GLOBAL), SCOPE_GLOBAL)]
     else:
-        return [get_collection(SCOPE_PROJECT)]
+        return [(get_collection(SCOPE_PROJECT), SCOPE_PROJECT)]
 
 
 def get_embedding(text: str) -> list:
@@ -470,7 +470,7 @@ async def call_tool(name: str, arguments: dict):
             all_results = []
             collections = get_collections_for_scope(scope)
 
-            for coll in collections:
+            for coll, coll_scope in collections:
                 try:
                     results = coll.query(
                         query_embeddings=[query_embedding],
@@ -478,7 +478,6 @@ async def call_tool(name: str, arguments: dict):
                         where=where_filter
                     )
                     if results["documents"][0]:
-                        coll_scope = "project" if "project" in coll._client._persist_directory else "global"
                         for doc, meta, dist in zip(
                             results["documents"][0],
                             results["metadatas"][0],
