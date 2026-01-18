@@ -2,120 +2,120 @@
 
 ## Vision
 
-Faire de claude-code-rag LA solution de mémoire persistante pour Claude Code : local-first, simple, et efficace.
+Make claude-code-rag THE persistent memory solution for Claude Code: local-first, simple, and effective.
 
 ---
 
-## Phase 1 : Stabilisation & Polish ✅
+## Phase 1: Stabilization & Polish ✅
 
-**Objectif** : Un MCP server qui marche nickel out of the box.
+**Goal**: An MCP server that works perfectly out of the box.
 
 ### Done ✅
-- [x] MCP server basique avec 5 tools
-- [x] Intégration Ollama + ChromaDB
-- [x] CLI standalone (`claude_rag.py`)
-- [x] TUI avec Textual (`rag_tui.py`)
-- [x] **Tests** : Tests unitaires pour le chunking
-- [x] **Health check** : Tool `rag_health` pour vérifier Ollama/ChromaDB
-- [x] **requirements.txt** : Complet avec mcp
+- [x] Basic MCP server with 5 tools
+- [x] Ollama + ChromaDB integration
+- [x] Standalone CLI (`claude_rag.py`)
+- [x] TUI with Textual (`rag_tui.py`)
+- [x] **Tests**: Unit tests for chunking
+- [x] **Health check**: `rag_health` tool to verify Ollama/ChromaDB
+- [x] **requirements.txt**: Complete with mcp
 
-### À faire (optionnel)
-- [ ] **Error handling** : Meilleurs messages d'erreur
-- [ ] **Logging** : Option debug pour troubleshoot
-
----
-
-## Phase 2 : Indexation Améliorée ✅
-
-**Objectif** : Indexer plus que du markdown, de manière intelligente.
-
-### Support multi-formats ✅
-- [x] `.txt` — Texte brut
-- [x] `.py` — Code Python (split par def/class)
-- [x] `.js` / `.ts` — JavaScript/TypeScript (split par function/const/export)
-- [x] `.json` — Configs JSON
-- [x] `.yaml` / `.yml` — Configs YAML
-- [x] `.sh` / `.fish` — Scripts shell
-- [x] `.toml` — Configs TOML
-
-### Chunking intelligent ✅
-- [x] **Markdown** : Split par headers (`## Section`)
-- [x] **Code Python** : Split par fonctions/classes
-- [x] **Code JS/TS** : Split par fonctions
-- [x] **Configs** : Chunking générique avec overlap
-
-### Métadonnées enrichies
-- [x] `file_type` : Extension du fichier
-- [x] `source` : Chemin complet
-- [ ] `indexed_at` : Timestamp d'indexation
-- [ ] `file_hash` : Hash pour détecter les changements
-- [ ] `chunk_index` : Position dans le fichier
+### To do (optional)
+- [ ] **Error handling**: Better error messages
+- [ ] **Logging**: Debug option for troubleshooting
 
 ---
 
-## Phase 3 : Memory Types & Organisation 🔄
+## Phase 2: Enhanced Indexing ✅
 
-**Objectif** : Pas juste "du texte", mais des types de mémoire structurés.
+**Goal**: Index more than markdown, intelligently.
 
-### Types de mémoire ✅
-- [x] `context` — Contexte général (fichiers indexés)
-- [x] `decision` — Décisions techniques prises
-- [x] `bugfix` — Bugs résolus et solutions
-- [x] `architecture` — Choix d'architecture
-- [x] `preference` — Préférences utilisateur
-- [x] `snippet` — Bouts de code réutilisables
+### Multi-format support ✅
+- [x] `.txt` — Plain text
+- [x] `.py` — Python code (split by def/class)
+- [x] `.js` / `.ts` — JavaScript/TypeScript (split by function/const/export)
+- [x] `.json` — JSON configs
+- [x] `.yaml` / `.yml` — YAML configs
+- [x] `.sh` / `.fish` — Shell scripts
+- [x] `.toml` — TOML configs
+
+### Intelligent chunking ✅
+- [x] **Markdown**: Split by headers (`## Section`)
+- [x] **Python code**: Split by functions/classes
+- [x] **JS/TS code**: Split by functions
+- [x] **Configs**: Generic chunking with overlap
+
+### Enriched metadata
+- [x] `file_type`: File extension
+- [x] `source`: Full path
+- [ ] `indexed_at`: Indexing timestamp
+- [ ] `file_hash`: Hash to detect changes
+- [ ] `chunk_index`: Position in file
+
+---
+
+## Phase 3: Memory Types & Organization 🔄
+
+**Goal**: Not just "text", but structured memory types.
+
+### Memory types ✅
+- [x] `context` — General context (indexed files)
+- [x] `decision` — Technical decisions made
+- [x] `bugfix` — Bugs resolved and solutions
+- [x] `architecture` — Architecture choices
+- [x] `preference` — User preferences
+- [x] `snippet` — Reusable code snippets
 
 ### Tool `rag_store` ✅
 ```python
 rag_store(
-    content: str,       # Le contenu à stocker
-    memory_type: str,   # Type de mémoire
-    tags: list[str]     # Tags optionnels
+    content: str,       # Content to store
+    memory_type: str,   # Memory type
+    tags: list[str]     # Optional tags
 )
 ```
 
 ### Tool `rag_forget` 🔄
 ```python
 rag_forget(
-    query: str,         # Recherche les memories à supprimer
-    confirm: bool       # Confirmation requise
+    query: str,         # Search for memories to delete
+    confirm: bool       # Confirmation required
 )
 ```
 
 ### Tool `rag_list` 🔄
 ```python
 rag_list(
-    memory_type: str,   # Filtrer par type (optionnel)
-    limit: int          # Nombre max de résultats
+    memory_type: str,   # Filter by type (optional)
+    limit: int          # Max results
 )
 ```
 
-### Filtrage par type dans search ✅
-- [x] Ajouter `memory_type` en filtre dans `rag_search`
+### Type filtering in search ✅
+- [x] Add `memory_type` filter in `rag_search`
 
 ---
 
-## Phase 4 : Auto-capture ✅
+## Phase 4: Auto-capture ✅
 
-**Objectif** : Capturer automatiquement le contexte des sessions Claude Code.
+**Goal**: Automatically capture context from Claude Code sessions.
 
 ### Session Parser ✅
-- [x] Parser les fichiers `.jsonl` dans `~/.claude/projects/`
-- [x] Extraire les décisions importantes
-- [x] Auto-index avec `rag_capture` tool
-- [ ] Résumer les sessions avec un LLM local (optionnel)
+- [x] Parse `.jsonl` files in `~/.claude/projects/`
+- [x] Extract important decisions
+- [x] Auto-index with `rag_capture` tool
+- [ ] Summarize sessions with local LLM (optional)
 
-### Détection de patterns ✅
-- [x] Détecter les phrases clés : "j'ai décidé", "on va utiliser", "le fix c'est"
-- [x] Marquer automatiquement le type de mémoire (decision, bugfix, architecture, etc.)
-- [x] Scoring de confiance (0-1)
+### Pattern detection ✅
+- [x] Detect key phrases: "I decided", "we'll use", "the fix is"
+- [x] Automatically tag memory type (decision, bugfix, architecture, etc.)
+- [x] Confidence scoring (0-1)
 
 ### Tool `rag_capture` ✅
 ```python
 rag_capture(
-    max_sessions: int,      # Nombre de sessions à parser (défaut: 3)
-    min_confidence: float,  # Seuil de confiance (défaut: 0.7)
-    dry_run: bool           # Preview sans stocker (défaut: false)
+    max_sessions: int,      # Number of sessions to parse (default: 3)
+    min_confidence: float,  # Confidence threshold (default: 0.7)
+    dry_run: bool           # Preview without storing (default: false)
 )
 ```
 
@@ -126,118 +126,118 @@ auto_capture:
   enabled: true
   session_summary: true
   watch_paths:
-    - ~/projets/*/CLAUDE.md
+    - ~/projects/*/CLAUDE.md
 ```
 
 ---
 
-## Phase 5 : Export & Sync 🔄
+## Phase 5: Export & Sync 🔄
 
-**Objectif** : La mémoire doit pouvoir sortir du RAG.
+**Goal**: Memory must be exportable from RAG.
 
-### Export multi-format ✅
-- [x] Tool `rag_export` : Export vers AGENTS.md, CLAUDE.md, GEMINI.md, etc.
-- [x] Support 5 formats : agents, claude, gemini, aider, cursor
-- [x] Filtrage par memory_type et scope
-- [x] Création de symlinks pour compatibilité cross-agent
-- [x] Format markdown organisé par sections (Decisions, Architecture, Bugfixes...)
+### Multi-format export ✅
+- [x] Tool `rag_export`: Export to AGENTS.md, CLAUDE.md, GEMINI.md, etc.
+- [x] Support 5 formats: agents, claude, gemini, aider, cursor
+- [x] Filtering by memory_type and scope
+- [x] Symlink creation for cross-agent compatibility
+- [x] Markdown format organized by sections (Decisions, Architecture, Bugfixes...)
 
-### Sync bidirectionnelle ✅
-- [x] Tool `rag_sync` : Sync on-demand avec détection de changements (hash SHA256)
-- [x] Hash-based IDs pour auto-dedup (ChromaDB upsert)
-- [x] `sync_state.json` : Track les fichiers indexés et leurs hash
-- [x] Protection anti-boucle : Refuse d'exporter vers fichiers sources
+### Bidirectional sync ✅
+- [x] Tool `rag_sync`: On-demand sync with change detection (SHA256 hash)
+- [x] Hash-based IDs for auto-dedup (ChromaDB upsert)
+- [x] `sync_state.json`: Track indexed files and their hashes
+- [x] Anti-loop protection: Refuse to export to source files
 
 ### Backup & Restore ✅
-- [x] `rag_backup` : Export JSON complet (documents, metadatas, embeddings)
-- [x] `rag_restore` : Import avec mode merge ou replace
-- [x] Support multi-scope (project, global, all)
-- [x] Embeddings sauvegardés pour restore rapide sans recalcul
+- [x] `rag_backup`: Complete JSON export (documents, metadatas, embeddings)
+- [x] `rag_restore`: Import with merge or replace mode
+- [x] Multi-scope support (project, global, all)
+- [x] Embeddings saved for fast restore without recalculation
 
 ---
 
-## Phase 6 : Multi-modèle & Performance 🚀
+## Phase 6: Multi-model & Performance 🚀
 
-**Objectif** : Plus rapide, plus flexible.
+**Goal**: Faster, more flexible.
 
-### Support multi-modèles
-- [ ] `nomic-embed-text` (défaut, 274MB)
+### Multi-model support
+- [ ] `nomic-embed-text` (default, 274MB)
 - [ ] `nomic-embed-text-v2-moe` (multilingual, 958MB)
-- [ ] `mxbai-embed-large` (haute qualité, 670MB)
+- [ ] `mxbai-embed-large` (high quality, 670MB)
 - [ ] `all-minilm` (tiny & fast, 46MB)
 
-### Optimisations ✅
-- [x] Batch embeddings (`get_embeddings_batch()` - un appel API pour N chunks)
-- [x] Cache des embeddings (in-memory, hash-based)
-- [x] Index incrémental (`rag_sync` avec hash SHA256)
-- [ ] Async pour les gros indexages (optionnel)
+### Optimizations ✅
+- [x] Batch embeddings (`get_embeddings_batch()` - one API call for N chunks)
+- [x] Embedding cache (in-memory, hash-based)
+- [x] Incremental index (`rag_sync` with SHA256 hash)
+- [ ] Async for large indexing (optional)
 
-### Métriques ✅
-- [x] Taille de la DB sur disque
-- [x] Hit rate du cache
-- [x] Stats dans `rag_stats` (hits, misses, cache size)
-
----
-
-## Phase 7 : UI & DX 🎨
-
-**Objectif** : Facile à utiliser et à debug.
-
-### Web UI (optionnel)
-- [ ] Dashboard pour voir les memories
-- [ ] Search interactif
-- [ ] Gestion des types/tags
-- [ ] Stats visuelles
-- [ ] Stack : FastAPI + HTMX (léger)
-
-### TUI améliorée
-- [ ] Vue des memories par type
-- [ ] Delete/edit depuis la TUI
-- [ ] Search en temps réel
-
-### CLI amélioré ✅
-- [x] `claude-rag init` : Setup initial (check Ollama, pull model, create DB)
-- [x] `claude-rag doctor` : Diagnostique complet (Ollama, DB, MCP, Claude config)
-- [x] `claude-rag serve` : Lance le MCP server
-- [x] `claude-rag ui` : Lance la TUI
-- [x] argparse avec sous-commandes propres
+### Metrics ✅
+- [x] DB size on disk
+- [x] Cache hit rate
+- [x] Stats in `rag_stats` (hits, misses, cache size)
 
 ---
 
-## Phase 8 : Communauté & Distribution 📦
+## Phase 7: UI & DX 🎨
 
-**Objectif** : Facile à installer, facile à contribuer.
+**Goal**: Easy to use and debug.
+
+### Web UI (optional)
+- [ ] Dashboard to view memories
+- [ ] Interactive search
+- [ ] Type/tag management
+- [ ] Visual stats
+- [ ] Stack: FastAPI + HTMX (lightweight)
+
+### Enhanced TUI
+- [ ] Memory view by type
+- [ ] Delete/edit from TUI
+- [ ] Real-time search
+
+### Enhanced CLI ✅
+- [x] `claude-rag init`: Initial setup (check Ollama, pull model, create DB)
+- [x] `claude-rag doctor`: Full diagnostics (Ollama, DB, MCP, Claude config)
+- [x] `claude-rag serve`: Start MCP server
+- [x] `claude-rag ui`: Launch TUI
+- [x] argparse with proper subcommands
+
+---
+
+## Phase 8: Community & Distribution 📦
+
+**Goal**: Easy to install, easy to contribute.
 
 ### Packaging
-- [ ] Publier sur PyPI : `pip install claude-code-rag`
-- [ ] Entry point : `claude-rag` disponible direct
-- [ ] MCP installable via : `claude mcp add rag -- pip run claude-code-rag`
+- [ ] Publish on PyPI: `pip install claude-code-rag`
+- [ ] Entry point: `claude-rag` available directly
+- [ ] MCP installable via: `claude mcp add rag -- pip run claude-code-rag`
 
 ### Documentation
-- [ ] README complet avec GIFs
+- [ ] Complete README with GIFs
 - [ ] CONTRIBUTING.md
-- [ ] Examples d'usage avancé
+- [ ] Advanced usage examples
 - [ ] Troubleshooting guide
 
-### Médiatisation
+### Promotion
 - [ ] Post Reddit r/ClaudeAI
 - [ ] Post Reddit r/LocalLLaMA
 - [ ] Post Reddit r/selfhosted
-- [ ] Article Medium/Dev.to
-- [ ] Demo vidéo (30s GIF ou YouTube)
+- [ ] Medium/Dev.to article
+- [ ] Demo video (30s GIF or YouTube)
 
 ---
 
 ## Nice to Have (Backlog) 💭
 
-- [ ] **Hybrid search** : Keyword + semantic combiné
-- [ ] **Reranking** : Rerank les résultats avec un modèle dédié
-- [ ] **Knowledge graph** : Relations entre memories
-- [ ] **Multi-user** : Memories séparées par utilisateur
-- [ ] **Encryption** : Chiffrer la DB locale
-- [ ] **Cloud sync** : Sync optionnel vers un serveur (self-hosted)
-- [ ] **MCP Resources** : Exposer les memories comme resources MCP
-- [ ] **Prompts MCP** : Prompts prédéfinis pour les workflows courants
+- [ ] **Hybrid search**: Keyword + semantic combined
+- [ ] **Reranking**: Rerank results with dedicated model
+- [ ] **Knowledge graph**: Relations between memories
+- [ ] **Multi-user**: Separate memories per user
+- [ ] **Encryption**: Encrypt local DB
+- [ ] **Cloud sync**: Optional sync to server (self-hosted)
+- [ ] **MCP Resources**: Expose memories as MCP resources
+- [ ] **MCP Prompts**: Predefined prompts for common workflows
 
 ---
 
@@ -245,34 +245,34 @@ auto_capture:
 
 | Version | Milestone |
 |---------|-----------|
-| 0.1.0 | MCP server basique |
-| 0.2.0 | Phase 2 - Multi-formats + chunking intelligent |
+| 0.1.0 | Basic MCP server |
+| 0.2.0 | Phase 2 - Multi-formats + intelligent chunking |
 | 0.3.0 | Phase 3 - Memory types |
 | 0.4.0 | Phase 4 - Auto-capture |
 | 0.4.1 | Dual-scope memory (project + global) |
-| 0.5.0 | Phase 5 - Export multi-format (AGENTS.md, CLAUDE.md, etc.) ✅ |
-| 0.6.0 | Phase 5 - Sync bidirectionnelle (`rag_sync` + protection anti-boucle) ✅ |
+| 0.5.0 | Phase 5 - Multi-format export (AGENTS.md, CLAUDE.md, etc.) ✅ |
+| 0.6.0 | Phase 5 - Bidirectional sync (`rag_sync` + anti-loop protection) ✅ |
 | 0.7.0 | Phase 5 - Backup/Restore (`rag_backup`, `rag_restore`) ✅ |
-| 0.8.0 | Phase 6 - Performance (batch embeddings, cache, métriques) ✅ |
-| 0.9.0 | Phase 7 - CLI amélioré (init, doctor, serve, ui) ✅ |
-| 1.0.0 | Stable, testé, documenté, sur PyPI |
+| 0.8.0 | Phase 6 - Performance (batch embeddings, cache, metrics) ✅ |
+| 0.9.0 | Phase 7 - Enhanced CLI (init, doctor, serve, ui) ✅ |
+| 1.0.0 | Stable, tested, documented, on PyPI |
 
 ---
 
-## Priorités immédiates
+## Immediate priorities
 
-1. ~~**Tests basiques**~~ ✅
+1. ~~**Basic tests**~~ ✅
 2. ~~**Multi-formats**~~ ✅
-3. ~~**Chunking markdown**~~ ✅
+3. ~~**Markdown chunking**~~ ✅
 4. ~~**`rag_store` tool**~~ ✅
-5. ~~**README avec GIF**~~ ✅
+5. ~~**README with GIF**~~ ✅
 6. ~~**`rag_forget` tool**~~ ✅
 7. ~~**Dual-scope memory**~~ ✅ (project + global)
 8. ~~**`rag_list` tool**~~ ✅
-9. ~~**Filtrage search**~~ ✅
+9. ~~**Search filtering**~~ ✅
 10. ~~**`rag_capture` tool**~~ ✅ — Auto-capture sessions
 11. ~~**`rag_export` tool**~~ ✅ — Multi-format export (AGENTS.md, CLAUDE.md, GEMINI.md...)
-12. ~~**Sync bidirectionnelle**~~ ✅ — `rag_sync` + protection anti-boucle
+12. ~~**Bidirectional sync**~~ ✅ — `rag_sync` + anti-loop protection
 13. ~~**Backup & Restore**~~ ✅ — `rag_backup` + `rag_restore`
 14. **PyPI package** — Phase 8
 
