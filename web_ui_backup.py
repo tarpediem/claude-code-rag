@@ -224,656 +224,532 @@ HTML_BASE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Claude Code RAG - Neural Dashboard</title>
-<script src="https://unpkg.com/htmx.org@1.9.10"></script>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
-<style>
-:root {
-    --neon-cyan: #00f2ff;
-    --neon-indigo: #6366f1;
-    --deep-bg: #030014;
-    --glass-dark: rgba(10, 10, 18, 0.45);
-    --glass-border: rgba(255, 255, 255, 0.08);
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: var(--deep-bg);
-    color: #f1f5f9;
-    min-height: 100vh;
-}
-
-.mesh-gradient {
-    background-color: var(--deep-bg);
-    background-image:
-        radial-gradient(at 0% 0%, hsla(270, 70%, 15%, 1) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, hsla(240, 70%, 10%, 1) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, hsla(260, 60%, 12%, 1) 0px, transparent 50%),
-        radial-gradient(at 0% 100%, hsla(280, 50%, 8%, 1) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, hsla(250, 60%, 5%, 1) 0px, transparent 50%);
-    background-attachment: fixed;
-    min-height: 100vh;
-}
-
-.glass-panel {
-    background: var(--glass-dark);
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.4);
-}
-
-.neon-border-indigo {
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    box-shadow: 0 0 10px rgba(99, 102, 241, 0.1), inset 0 0 1px rgba(99, 102, 241, 0.2);
-}
-
-.neon-border-cyan {
-    border: 1px solid rgba(0, 242, 255, 0.3);
-    box-shadow: 0 0 10px rgba(0, 242, 255, 0.1), inset 0 0 1px rgba(0, 242, 255, 0.2);
-}
-
-.sidebar-blur {
-    background: rgba(10, 10, 18, 0.6);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-}
-
-.neon-text-cyan {
-    color: var(--neon-cyan);
-    text-shadow: 0 0 8px rgba(0, 242, 255, 0.4);
-}
-
-.neon-text-indigo {
-    color: var(--neon-indigo);
-    text-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
-}
-
-.bento-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.bento-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-}
-
-/* Layout */
-.app-container {
-    display: flex;
-    min-height: 100vh;
-}
-
-.sidebar {
-    width: 288px;
-    flex-shrink: 0;
-    position: fixed;
-    height: 100vh;
-    z-index: 50;
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-logo {
-    padding: 2.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.logo-icon {
-    width: 40px;
-    height: 40px;
-    background: #4f46e5;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
-    border: 1px solid rgba(99, 102, 241, 0.3);
-}
-
-.logo-text {
-    font-size: 1.25rem;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    color: white;
-}
-
-.nav {
-    flex: 1;
-    padding: 0 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.2s;
-    color: #94a3b8;
-}
-
-.nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-}
-
-.nav-item.active {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.nav-item .material-symbols-outlined {
-    font-size: 20px;
-}
-
-.nav-item.active .material-symbols-outlined {
-    color: var(--neon-cyan);
-}
-
-.sidebar-footer {
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.stat-mini {
-    background: rgba(99, 102, 241, 0.05);
-    padding: 1.25rem;
-    border-radius: 16px;
-}
-
-.stat-mini-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 0.5rem;
-}
-
-.stat-mini-value {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -0.05em;
-}
-
-.stat-mini-badge {
-    font-size: 10px;
-    font-weight: 700;
-    color: #10b981;
-    margin-left: 0.5rem;
-}
-
-.version-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 0.5rem;
-}
-
-.version-text {
-    font-size: 10px;
-    color: #64748b;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-}
-
-.help-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.05);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.help-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.main-content {
-    flex: 1;
-    margin-left: 288px;
-    padding: 2.5rem 4rem;
-}
-
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4rem;
-}
-
-.page-title {
-    font-size: 3rem;
-    font-weight: 900;
-    letter-spacing: -0.05em;
-    color: white;
-    margin-bottom: 0.75rem;
-}
-
-.page-subtitle {
-    font-size: 1.125rem;
-    font-weight: 500;
-    color: #94a3b8;
-}
-
-.header-actions {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.btn-secondary {
-    background: var(--glass-dark);
-    color: #cbd5e1;
-    border: 1px solid var(--glass-border);
-}
-
-.btn-secondary:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.btn-primary {
-    background: #4f46e5;
-    color: white;
-    box-shadow: 0 0 25px rgba(79, 70, 229, 0.3);
-    border: 1px solid rgba(99, 102, 241, 0.4);
-}
-
-.btn-primary:hover {
-    background: #4338ca;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-    margin-bottom: 3rem;
-}
-
-.stat-card {
-    padding: 2rem;
-    border-radius: 40px;
-}
-
-.stat-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 2rem;
-}
-
-.stat-card-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-}
-
-.stat-card-icon {
-    font-size: 24px;
-}
-
-.stat-card-value {
-    font-size: 3.75rem;
-    font-weight: 900;
-    letter-spacing: -0.05em;
-}
-
-.stat-card-badge {
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-    padding: 0.25rem 0.5rem;
-    border-radius: 8px;
-    margin-left: 0.75rem;
-}
-
-.stat-card-meta {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #64748b;
-    letter-spacing: 0.1em;
-}
-
-.content-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 2.5rem;
-}
-
-.distribution-card {
-    padding: 3rem;
-    border-radius: 40px;
-}
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 3rem;
-}
-
-.card-title {
-    font-size: 1.875rem;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    color: white;
-}
-
-.card-action {
-    font-size: 0.875rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    text-decoration: none;
-    transition: filter 0.2s;
-}
-
-.card-action:hover {
-    filter: brightness(1.25);
-}
-
-.progress-list {
-    display: flex;
-    flex-direction: column;
-    gap: 3rem;
-}
-
-.progress-item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.25rem;
-}
-
-.progress-label {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.progress-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-}
-
-.progress-label-text {
-    font-weight: 700;
-    color: #cbd5e1;
-}
-
-.progress-value {
-    font-size: 0.875rem;
-    font-weight: 900;
-    color: white;
-}
-
-.progress-bar-container {
-    height: 12px;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 9999px;
-    overflow: hidden;
-    padding: 2px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.progress-bar-fill {
-    height: 100%;
-    border-radius: 9999px;
-}
-
-.side-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
-}
-
-.activity-card {
-    padding: 2.5rem;
-    border-radius: 40px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.activity-title {
-    font-size: 1.25rem;
-    font-weight: 900;
-    letter-spacing: -0.025em;
-    color: white;
-    margin-bottom: 2rem;
-}
-
-.activity-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
-
-.activity-item {
-    display: flex;
-    gap: 1.25rem;
-}
-
-.activity-icon-wrapper {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.activity-text {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: white;
-}
-
-.activity-time {
-    font-size: 11px;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-top: 0.25rem;
-}
-
-.health-card {
-    padding: 2.5rem;
-    border-radius: 40px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.health-glow {
-    position: absolute;
-    top: -3rem;
-    right: -3rem;
-    width: 6rem;
-    height: 6rem;
-    background: rgba(0, 242, 255, 0.1);
-    filter: blur(3rem);
-    transition: background 0.3s;
-}
-
-.health-card:hover .health-glow {
-    background: rgba(0, 242, 255, 0.2);
-}
-
-.health-icon-wrapper {
-    width: 80px;
-    height: 80px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 2rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05);
-}
-
-.health-icon {
-    font-size: 48px;
-}
-
-.health-title {
-    font-size: 1.25rem;
-    font-weight: 900;
-    letter-spacing: -0.025em;
-    color: white;
-    margin-bottom: 1rem;
-}
-
-.health-description {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #94a3b8;
-    line-height: 1.75;
-    padding: 0 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.health-highlight {
-    font-weight: 900;
-}
-
-@media (max-width: 1280px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .content-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-    .main-content {
-        margin-left: 0;
-        padding: 1.5rem;
-    }
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    .page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1.5rem;
-    }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code RAG - Neural Dashboard</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-indigo: #6366f1;
+            --deep-bg: #030014;
+            --glass-dark: rgba(10, 10, 18, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Layout */
+        .app {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar with glassmorphism */
+        .sidebar {
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-right: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            font-size: 1.5rem;
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.875rem;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.9375rem;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(0, 122, 255, 0.08);
+            color: var(--accent-blue);
+        }
+
+        .nav-item.active {
+            background: var(--accent-blue);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+
+        /* Stats cards in sidebar */
+        .stat-mini {
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-mini-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            letter-spacing: -0.03em;
+        }
+
+        .stat-mini-label {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Main content */
+        .main {
+            padding: 3rem;
+            overflow-y: auto;
+            max-width: 1400px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+
+        /* Search */
+        .search-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 2.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 1rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12), var(--shadow-md);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: var(--radius-lg);
+            padding: 1.75rem;
+            margin-bottom: 1.25rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.875rem;
+            border-radius: 100px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .badge-type {
+            background: rgba(175, 82, 222, 0.12);
+            color: var(--accent-purple);
+        }
+
+        .badge-scope {
+            background: rgba(52, 199, 89, 0.12);
+            color: var(--accent-green);
+        }
+
+        .badge-score {
+            background: rgba(255, 149, 0, 0.12);
+            color: var(--accent-orange);
+        }
+
+        .card-content {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .card-footer {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            border: none;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: -0.01em;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+            box-shadow: 0 1px 4px rgba(0, 122, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #0062cc;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--accent-red);
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background: var(--accent-red);
+            color: white;
+            box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(0, 0, 0, 0.04);
+            color: var(--text-primary);
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: var(--radius-lg);
+            padding: 2rem 1.75rem;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            letter-spacing: -0.05em;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            margin-top: 0.75rem;
+            font-size: 0.9375rem;
+            font-weight: 500;
+        }
+
+        /* Type breakdown */
+        .type-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .type-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .type-name {
+            width: 120px;
+            color: var(--text-secondary);
+        }
+
+        .type-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .type-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 4px;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .type-count {
+            width: 50px;
+            text-align: right;
+            color: var(--text-primary);
+        }
+
+        /* Filter pills */
+        .filters {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .filter-pill {
+            padding: 0.625rem 1.125rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 100px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .filter-pill:hover {
+            background: rgba(0, 122, 255, 0.08);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .filter-pill.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* HTMX loading indicator */
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+
+        .htmx-request.htmx-indicator {
+            display: inline-block;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main {
+                padding: 2rem;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: fixed;
+                left: -240px;
+                top: 0;
+                height: 100vh;
+                z-index: 1000;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .sidebar.open {
+                left: 0;
+                box-shadow: var(--shadow-lg);
+            }
+            .main {
+                padding: 1.5rem;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .stat-card {
+                padding: 1.5rem;
+            }
+            .stat-value {
+                font-size: 2.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main {
+                padding: 1rem;
+            }
+            .card {
+                padding: 1.25rem;
+            }
+        }
+    </style>
 </head>
-<body class="mesh-gradient">
-<div class="app-container">
-    <aside class="sidebar sidebar-blur">
-        <div class="sidebar-logo">
-            <div class="logo-icon">
-                <span class="material-symbols-outlined" style="color: white; font-size: 24px;">psychology</span>
-            </div>
-            <span class="logo-text">Claude RAG</span>
-        </div>
-        <nav class="nav">
-            <a class="nav-item $active_home" href="/">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span>Dashboard</span>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <a href="/" class="logo">
+                <span class="logo-icon">🧠</span>
+                <span>Claude RAG</span>
             </a>
-            <a class="nav-item $active_search" href="/search">
-                <span class="material-symbols-outlined">search</span>
-                <span>Semantic Search</span>
-            </a>
-            <a class="nav-item $active_memories" href="/memories">
-                <span class="material-symbols-outlined">auto_stories</span>
-                <span>Memory Browser</span>
-            </a>
-            <a class="nav-item $active_index" href="/index">
-                <span class="material-symbols-outlined">upload_file</span>
-                <span>Index Files</span>
-            </a>
-        </nav>
-        <div class="sidebar-footer">
-            <div class="stat-mini neon-border-indigo">
-                <div class="stat-mini-label">Memory Count</div>
-                <div>
-                    <span class="stat-mini-value neon-text-indigo">$total_count</span>
-                    <span class="stat-mini-badge">ACTIVE</span>
-                </div>
-            </div>
-            <div class="version-row">
-                <span class="version-text">Version 0.9.4</span>
-                <button class="help-btn">
-                    <span class="material-symbols-outlined" style="font-size: 14px; color: #94a3b8;">help</span>
-                </button>
-            </div>
-        </div>
-    </aside>
 
-    <main class="main-content">
-$content
-</main>
-</div>
+            <nav class="nav">
+                <a href="/" class="nav-item $active_home">
+                    <span>📊</span> Dashboard
+                </a>
+                <a href="/search" class="nav-item $active_search">
+                    <span>🔍</span> Search
+                </a>
+                <a href="/memories" class="nav-item $active_memories">
+                    <span>📚</span> Memories
+                </a>
+                <a href="/index" class="nav-item $active_index">
+                    <span>📁</span> Index
+                </a>
+            </nav>
+
+            <div class="stat-mini">
+                <div class="stat-mini-value">$total_count</div>
+                <div class="stat-mini-label">Total Memories</div>
+            </div>
+        </aside>
+
+        <main class="main">
+            $content
+        </main>
+    </div>
 </body>
 </html>
-
 """
-
 
 
 def render_page(content: str, active: str = "", stats: dict = None) -> str:
@@ -945,137 +821,47 @@ async def dashboard():
     """Dashboard page"""
     stats = get_stats()
 
-    # Calculate percentages for type breakdown
-    total = sum(stats["type_counts"].values()) if stats["type_counts"] else 1
+    # Type breakdown
     type_bars = ""
-
-    # Get top 3 types
-    sorted_types = sorted(stats["type_counts"].items(), key=lambda x: -x[1])[:3]
-
-    for mem_type, count in sorted_types:
-        pct = int((count / total) * 100)
-        # Color based on type
-        if mem_type == "context":
-            color_class = "neon-border-cyan"
-            dot_style = 'background: var(--neon-cyan); box-shadow: 0 0 12px rgba(0, 242, 255, 0.6);'
-            fill_style = 'background: linear-gradient(to right, #0891b2, var(--neon-cyan)); box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);'
-        elif mem_type == "architecture":
-            color_class = "neon-border-indigo"
-            dot_style = 'background: var(--neon-indigo); box-shadow: 0 0 12px rgba(99, 102, 241, 0.6);'
-            fill_style = 'background: linear-gradient(to right, #4f46e5, var(--neon-indigo)); box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);'
-        else:
-            color_class = ""
-            dot_style = 'background: #94a3b8; box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);'
-            fill_style = 'background: rgba(255, 255, 255, 0.2);'
-
+    max_count = max(stats["type_counts"].values()) if stats["type_counts"] else 1
+    for mem_type, count in sorted(stats["type_counts"].items(), key=lambda x: -x[1]):
+        pct = int((count / max_count) * 100)
         type_bars += f'''
-        <div>
-            <div class="progress-item-header">
-                <div class="progress-label">
-                    <div class="progress-dot {color_class}" style="{dot_style}"></div>
-                    <span class="progress-label-text">{mem_type.title()}</span>
-                </div>
-                <span class="progress-value">{pct}%</span>
-            </div>
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" style="width: {pct}%; {fill_style}"></div>
-            </div>
+        <div class="type-item">
+            <span class="type-name">{mem_type}</span>
+            <div class="type-bar"><div class="type-bar-fill" style="width: {pct}%"></div></div>
+            <span class="type-count">{count}</span>
         </div>
         '''
 
     content = f'''
-    <header class="page-header">
-        <div>
-            <h1 class="page-title">Neural Dashboard</h1>
-            <p class="page-subtitle">Monitoring your RAG memory retrieval metrics.</p>
-        </div>
-        <div class="header-actions">
-            <button class="btn btn-secondary">
-                <span class="material-symbols-outlined" style="font-size: 18px;">calendar_today</span>
-                <span>Real-time Streams</span>
-            </button>
-            <button class="btn btn-primary" onclick="window.location.href='/index'">
-                Process New Corpus
-            </button>
-        </div>
-    </header>
+    <div class="header">
+        <h1>📊 Dashboard</h1>
+    </div>
 
     <div class="stats-grid">
-        <div class="glass-panel bento-card stat-card neon-border-cyan">
-            <div class="stat-card-label">Total Memories</div>
-            <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-top: 2rem;">
-                <span class="stat-card-value neon-text-cyan">{stats["total_count"]}</span>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value">{stats["total_count"]}</div>
+            <div class="stat-label">Total Memories</div>
         </div>
-
-        <div class="glass-panel bento-card stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-label">Search Latency</div>
-                <span class="material-symbols-outlined stat-card-icon neon-text-indigo">speed</span>
-            </div>
-            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
-                <span class="stat-card-value" style="color: white;">30</span>
-                <span class="stat-card-meta">ms</span>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: var(--accent-green)">{stats["project_count"]}</div>
+            <div class="stat-label">📁 Project</div>
         </div>
-
-        <div class="glass-panel bento-card stat-card neon-border-indigo">
-            <div class="stat-card-header">
-                <div class="stat-card-label">Global Scope</div>
-                <span class="material-symbols-outlined stat-card-icon neon-text-indigo">hub</span>
-            </div>
-            <div style="display: flex; align-items: baseline; gap: 0.75rem;">
-                <span class="stat-card-value neon-text-indigo">{stats["global_count"]}</span>
-                <span class="stat-card-meta" style="color: #10b981;">ACTIVE</span>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: var(--accent-purple)">{stats["global_count"]}</div>
+            <div class="stat-label">🌐 Global</div>
         </div>
-
-        <div class="glass-panel bento-card stat-card">
-            <div class="stat-card-label">Memory Types</div>
-            <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-top: 2rem;">
-                <span class="stat-card-value" style="color: white;">{len(stats["type_counts"])}</span>
-                <span class="stat-card-meta">CATEGORIES</span>
-            </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: var(--accent-orange)">{len(stats["type_counts"])}</div>
+            <div class="stat-label">Memory Types</div>
         </div>
     </div>
 
-    <div class="content-grid">
-        <div class="glass-panel distribution-card">
-            <div class="card-header">
-                <h2 class="card-title">Memory Distribution</h2>
-                <a href="/memories" class="card-action neon-text-indigo">Full Analysis</a>
-            </div>
-            <div class="progress-list">
-                {type_bars or '<div style="text-align: center; color: #64748b;">No memories yet</div>'}
-            </div>
-        </div>
-
-        <div class="side-cards">
-            <div class="glass-panel activity-card">
-                <h3 class="activity-title">Recent Activity</h3>
-                <div class="activity-list">
-                    <div class="activity-item">
-                        <div class="activity-icon-wrapper" style="background: rgba(0, 242, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.2);">
-                            <span class="material-symbols-outlined neon-text-cyan" style="font-size: 24px;">memory</span>
-                        </div>
-                        <div>
-                            <p class="activity-text">Vector Index Synced</p>
-                            <p class="activity-time">Just now</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass-panel health-card">
-                <div class="health-glow"></div>
-                <div class="health-icon-wrapper">
-                    <span class="material-symbols-outlined health-icon neon-text-cyan">analytics</span>
-                </div>
-                <h3 class="health-title">Retrieval Health</h3>
-                <p class="health-description">
-                    System running at <span class="health-highlight neon-text-cyan">peak performance</span> with <span class="health-highlight" style="color: white;">minimal latency</span>.
-                </p>
-            </div>
+    <div class="card">
+        <h3 style="margin-bottom: 1rem;">Memory Types</h3>
+        <div class="type-list">
+            {type_bars or '<div class="empty-state">No memories yet</div>'}
         </div>
     </div>
     '''
