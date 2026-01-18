@@ -148,10 +148,11 @@ auto_capture:
 - [x] `sync_state.json` : Track les fichiers indexés et leurs hash
 - [x] Protection anti-boucle : Refuse d'exporter vers fichiers sources
 
-### Backup & Restore
-- [ ] `rag_backup` : Export JSON de toute la DB
-- [ ] `rag_restore` : Import depuis backup
-- [ ] Support versioning
+### Backup & Restore ✅
+- [x] `rag_backup` : Export JSON complet (documents, metadatas, embeddings)
+- [x] `rag_restore` : Import avec mode merge ou replace
+- [x] Support multi-scope (project, global, all)
+- [x] Embeddings sauvegardés pour restore rapide sans recalcul
 
 ---
 
@@ -251,6 +252,7 @@ auto_capture:
 | 0.4.1 | Dual-scope memory (project + global) |
 | 0.5.0 | Phase 5 - Export multi-format (AGENTS.md, CLAUDE.md, etc.) ✅ |
 | 0.6.0 | Phase 5 - Sync bidirectionnelle (`rag_sync` + protection anti-boucle) ✅ |
+| 0.7.0 | Phase 5 - Backup/Restore (`rag_backup`, `rag_restore`) ✅ |
 | 1.0.0 | Stable, testé, documenté, sur PyPI |
 
 ---
@@ -269,15 +271,19 @@ auto_capture:
 10. ~~**`rag_capture` tool**~~ ✅ — Auto-capture sessions
 11. ~~**`rag_export` tool**~~ ✅ — Multi-format export (AGENTS.md, CLAUDE.md, GEMINI.md...)
 12. ~~**Sync bidirectionnelle**~~ ✅ — `rag_sync` + protection anti-boucle
-13. **Backup & Restore** — Phase 5
+13. ~~**Backup & Restore**~~ ✅ — `rag_backup` + `rag_restore`
 14. **PyPI package** — Phase 8
 
 ---
 
-**v0.6.0 shipped! 🚀**
+**v0.7.0 shipped! 🚀**
 
-New in v0.6.0:
+New in v0.7.0:
+- `rag_backup` - Full JSON export (documents, metadatas, embeddings)
+- `rag_restore` - Import with merge or replace mode
+- Embeddings saved for fast restore without recalculation
+
+Previous (v0.6.0):
 - `rag_sync` tool for bidirectional sync
 - Hash-based change detection (SHA256)
-- Auto-dedup via hash-based chunk IDs
 - Protection against overwriting source files

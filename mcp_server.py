@@ -558,6 +558,50 @@ async def list_tools():
                     }
                 }
             }
+        ),
+        Tool(
+            name="rag_backup",
+            description="Export RAG memory to a JSON backup file. Use this to save your memories before major changes or for migration.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "output_path": {
+                        "type": "string",
+                        "description": "Output file path (default: ~/claude-rag-backup-{timestamp}.json)"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope to backup: 'project', 'global', or 'all' (default)",
+                        "enum": ["project", "global", "all"],
+                        "default": "all"
+                    }
+                }
+            }
+        ),
+        Tool(
+            name="rag_restore",
+            description="Restore RAG memory from a JSON backup file. Use this to recover memories or migrate to a new system.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "input_path": {
+                        "type": "string",
+                        "description": "Path to the backup JSON file"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "Restore mode: 'merge' (add to existing, default) or 'replace' (clear and restore)",
+                        "enum": ["merge", "replace"],
+                        "default": "merge"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Target scope for restore: 'project' or 'global' (default: use scope from backup)",
+                        "enum": ["project", "global"]
+                    }
+                },
+                "required": ["input_path"]
+            }
         )
     ]
 
@@ -1120,6 +1164,184 @@ async def call_tool(name: str, arguments: dict):
 
         except requests.exceptions.ConnectionError:
             return [TextContent(type="text", text="Error: Ollama not running. Start with: systemctl start ollama")]
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+    elif name == "rag_backup":
+        output_path = arguments.get("output_path", "")
+        scope = arguments.get("scope", SCOPE_ALL)
+
+        try:
+            # Default output path with timestamp
+            if not output_path:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_path = os.path.expanduser(f"~/claude-rag-backup-{timestamp}.json")
+            else:
+                output_path = os.path.expanduser(output_path)
+
+            backup_data = {
+                "version": "1.0",
+                "created_at": datetime.now().isoformat(),
+                "scope": scope,
+                "project_path": PROJECT_PATH,
+                "collections": {}
+            }
+
+            scopes_to_backup = [SCOPE_PROJECT, SCOPE_GLOBAL] if scope == SCOPE_ALL else [scope]
+            total_memories = 0
+
+            for s in scopes_to_backup:
+                try:
+                    coll = get_collection(s)
+                    data = coll.get(include=["documents", "metadatas", "embeddings"])
+
+                    if data["ids"]:
+                        backup_data["collections"][s] = {
+                            "ids": data["ids"],
+                            "documents": data["documents"],
+                            "metadatas": data["metadatas"],
+                            # Embeddings are lists of floats, store them too for full restore
+                            "embeddings": data["embeddings"] if data.get("embeddings") else []
+                        }
+                        total_memories += len(data["ids"])
+                except Exception as e:
+                    backup_data["collections"][s] = {"error": str(e)}
+
+            # Write backup file
+            with open(output_path, 'w') as f:
+                json.dump(backup_data, f, indent=2, default=str)
+
+            file_size = os.path.getsize(output_path)
+            size_str = f"{file_size / 1024:.1f} KB" if file_size > 1024 else f"{file_size} bytes"
+
+            output = f"✅ Backup completed!\n\n"
+            output += f"**File:** {output_path}\n"
+            output += f"**Size:** {size_str}\n"
+            output += f"**Memories:** {total_memories}\n"
+            output += f"**Scope:** {scope}\n"
+
+            for s, data in backup_data["collections"].items():
+                if "error" in data:
+                    output += f"  ⚠️  {s}: {data['error']}\n"
+                else:
+                    output += f"  📁 {s}: {len(data['ids'])} memories\n"
+
+            return [TextContent(type="text", text=output)]
+
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+    elif name == "rag_restore":
+        input_path = arguments.get("input_path", "")
+        mode = arguments.get("mode", "merge")
+        target_scope = arguments.get("scope")
+
+        if not input_path:
+            return [TextContent(type="text", text="Error: input_path is required")]
+
+        input_path = os.path.expanduser(input_path)
+
+        if not os.path.exists(input_path):
+            return [TextContent(type="text", text=f"Error: File not found: {input_path}")]
+
+        try:
+            # Load backup file
+            with open(input_path, 'r') as f:
+                backup_data = json.load(f)
+
+            # Validate backup format
+            if "version" not in backup_data or "collections" not in backup_data:
+                return [TextContent(type="text", text="Error: Invalid backup format")]
+
+            output = f"🔄 Restoring from backup...\n\n"
+            output += f"**Backup date:** {backup_data.get('created_at', 'unknown')}\n"
+            output += f"**Mode:** {mode}\n\n"
+
+            total_restored = 0
+            total_skipped = 0
+
+            for scope_name, data in backup_data["collections"].items():
+                if "error" in data:
+                    output += f"⚠️  Skipping {scope_name}: backup had error\n"
+                    continue
+
+                # Use target_scope if specified, otherwise use original scope
+                restore_scope = target_scope if target_scope else scope_name
+
+                try:
+                    coll = get_collection(restore_scope)
+
+                    # If replace mode, clear existing data
+                    if mode == "replace":
+                        existing = coll.get()
+                        if existing["ids"]:
+                            coll.delete(ids=existing["ids"])
+                            output += f"🗑️  Cleared {len(existing['ids'])} existing memories from {restore_scope}\n"
+
+                    # Restore memories
+                    ids = data.get("ids", [])
+                    documents = data.get("documents", [])
+                    metadatas = data.get("metadatas", [])
+                    embeddings = data.get("embeddings", [])
+
+                    if not ids:
+                        output += f"⏭️  {scope_name}: No memories to restore\n"
+                        continue
+
+                    # Check for existing IDs in merge mode
+                    if mode == "merge":
+                        existing = coll.get(ids=ids)
+                        existing_ids = set(existing["ids"]) if existing["ids"] else set()
+
+                        # Filter out existing
+                        new_indices = [i for i, id in enumerate(ids) if id not in existing_ids]
+
+                        if len(new_indices) < len(ids):
+                            total_skipped += len(ids) - len(new_indices)
+
+                        if not new_indices:
+                            output += f"⏭️  {scope_name} → {restore_scope}: All {len(ids)} memories already exist\n"
+                            continue
+
+                        ids = [ids[i] for i in new_indices]
+                        documents = [documents[i] for i in new_indices]
+                        metadatas = [metadatas[i] for i in new_indices]
+                        if embeddings:
+                            embeddings = [embeddings[i] for i in new_indices]
+
+                    # Restore with embeddings if available, otherwise regenerate
+                    if embeddings and len(embeddings) == len(ids):
+                        coll.upsert(
+                            ids=ids,
+                            documents=documents,
+                            metadatas=metadatas,
+                            embeddings=embeddings
+                        )
+                    else:
+                        # Need to regenerate embeddings
+                        for i, (doc_id, doc, meta) in enumerate(zip(ids, documents, metadatas)):
+                            embedding = get_embedding(doc)
+                            coll.upsert(
+                                ids=[doc_id],
+                                documents=[doc],
+                                metadatas=[meta],
+                                embeddings=[embedding]
+                            )
+
+                    total_restored += len(ids)
+                    output += f"✅ {scope_name} → {restore_scope}: {len(ids)} memories restored\n"
+
+                except Exception as e:
+                    output += f"❌ {scope_name}: {str(e)}\n"
+
+            output += f"\n**Total restored:** {total_restored}"
+            if total_skipped:
+                output += f" (skipped {total_skipped} duplicates)"
+
+            return [TextContent(type="text", text=output)]
+
+        except json.JSONDecodeError:
+            return [TextContent(type="text", text="Error: Invalid JSON file")]
         except Exception as e:
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
