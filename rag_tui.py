@@ -43,6 +43,8 @@ from textual.widgets.tree import TreeNode
 SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+CHROMA_PATH = "~/.local/share/claude-memory"
+
 try:
     from claude_rag import (
         search_memories,
@@ -53,6 +55,9 @@ try:
     DIRECT_IMPORT = True
 except ImportError:
     DIRECT_IMPORT = False
+    search_memories = None
+    index_path = None
+    get_stats = None
 
 # Try to import chromadb for direct access
 try:
