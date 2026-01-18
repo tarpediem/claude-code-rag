@@ -333,6 +333,24 @@ def cmd_ui(args):
     return 0
 
 
+def cmd_web(args):
+    """Launch Web UI"""
+    web_script = Path(__file__).parent / "web_ui.py"
+    if not web_script.exists():
+        print(f"❌ Web UI not found: {web_script}")
+        return 1
+
+    python = str(VENV_PYTHON) if VENV_PYTHON.exists() else sys.executable
+    port = args.port if hasattr(args, 'port') else 8420
+
+    print(f"🌐 Starting Web UI...")
+    print(f"   URL: http://localhost:{port}")
+    print(f"   Press Ctrl+C to stop\n")
+
+    subprocess.run([python, str(web_script), "--port", str(port)])
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="claude-rag",
@@ -346,6 +364,7 @@ Examples:
   claude-rag search "my query"       # Search memories
   claude-rag serve                   # Start MCP server
   claude-rag ui                      # Launch TUI
+  claude-rag web                     # Launch Web UI
         """
     )
 
@@ -375,6 +394,10 @@ Examples:
     # ui
     subparsers.add_parser("ui", help="Launch TUI")
 
+    # web
+    p_web = subparsers.add_parser("web", help="Launch Web UI")
+    p_web.add_argument("-p", "--port", type=int, default=8420, help="Port (default: 8420)")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -389,6 +412,7 @@ Examples:
         "search": cmd_search,
         "stats": cmd_stats,
         "ui": cmd_ui,
+        "web": cmd_web,
     }
 
     return commands[args.command](args)

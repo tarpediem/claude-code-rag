@@ -179,27 +179,34 @@ auto_capture:
 
 ---
 
-## Phase 7: UI & DX 🎨
+## Phase 7: UI & DX ✅
 
 **Goal**: Easy to use and debug.
 
-### Web UI (optional)
-- [ ] Dashboard to view memories
-- [ ] Interactive search
-- [ ] Type/tag management
-- [ ] Visual stats
-- [ ] Stack: FastAPI + HTMX (lightweight)
+### Web UI ✅
+- [x] Dashboard to view memories
+- [x] Interactive search (HTMX live search)
+- [x] Type/scope filtering
+- [x] Visual stats with type breakdown
+- [x] Memory browser with delete
+- [x] File indexing form
+- [x] Stack: FastAPI + HTMX (lightweight)
+- [x] Modern dark theme
+- [x] `claude-rag web`: Launch Web UI
 
-### Enhanced TUI
-- [ ] Memory view by type
-- [ ] Delete/edit from TUI
-- [ ] Real-time search
+### Enhanced TUI ✅
+- [x] Memory view by type (sidebar tree)
+- [x] Delete from TUI
+- [x] Real-time search with debouncing
+- [x] Command palette (Ctrl+P)
+- [x] Modern styling (OpenCode-inspired)
 
 ### Enhanced CLI ✅
 - [x] `claude-rag init`: Initial setup (check Ollama, pull model, create DB)
 - [x] `claude-rag doctor`: Full diagnostics (Ollama, DB, MCP, Claude config)
 - [x] `claude-rag serve`: Start MCP server
 - [x] `claude-rag ui`: Launch TUI
+- [x] `claude-rag web`: Launch Web UI
 - [x] argparse with proper subcommands
 
 ---
@@ -255,6 +262,7 @@ auto_capture:
 | 0.7.0 | Phase 5 - Backup/Restore (`rag_backup`, `rag_restore`) ✅ |
 | 0.8.0 | Phase 6 - Performance (batch embeddings, cache, metrics) ✅ |
 | 0.9.0 | Phase 7 - Enhanced CLI (init, doctor, serve, ui) ✅ |
+| 0.9.2 | Phase 7 - Web UI + TUI redesign ✅ |
 | 1.0.0 | Stable, tested, documented, on PyPI |
 
 ---
@@ -278,15 +286,16 @@ auto_capture:
 
 ---
 
-**v0.9.0 shipped! 🚀**
+**v0.9.2 shipped! 🚀**
 
-New in v0.9.0:
-- `claude-rag init` - Setup wizard
-- `claude-rag doctor` - Full diagnostics
-- `claude-rag serve` - Start MCP server
-- argparse-based CLI with subcommands
+New in v0.9.2:
+- Web UI dashboard (FastAPI + HTMX)
+- Redesigned TUI (OpenCode-inspired)
+- `claude-rag web` - Launch Web UI
+- Modern dark theme styling
 
 Previous versions:
+- v0.9.0: Enhanced CLI (init, doctor, serve, ui)
 - v0.8.0: Performance (batch, cache, metrics)
 - v0.7.0: Backup/Restore
 - v0.6.0: Bidirectional sync
