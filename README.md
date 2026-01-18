@@ -62,7 +62,7 @@ Add to `~/.claude.json` under your project:
 }
 ```
 
-Restart Claude Code. You now have 8 native tools:
+Restart Claude Code. You now have 9 native tools:
 
 | Tool | Description |
 |------|-------------|
@@ -70,6 +70,7 @@ Restart Claude Code. You now have 8 native tools:
 | `rag_index` | Index files or directories |
 | `rag_store` | Manually store a memory with type/tags |
 | `rag_capture` | Auto-capture from Claude Code sessions |
+| `rag_export` | Export memories to AGENTS.md/CLAUDE.md/GEMINI.md etc. |
 | `rag_list` | List memories with filtering |
 | `rag_forget` | Delete memories by query or ID |
 | `rag_stats` | Show memory statistics |
@@ -123,6 +124,23 @@ Claude, capture memories from my recent sessions
 
 # Preview first without storing:
 → rag_capture(dry_run=true)
+```
+
+### Export to context file (MCP)
+```
+# Export to AGENTS.md (universal format - works with Codex, Gemini CLI, etc.)
+Claude, export my memories to an AGENTS.md
+→ rag_export(format="agents")
+
+# Export to CLAUDE.md specifically
+→ rag_export(format="claude", scope="project")
+
+# Export with symlinks for cross-agent compatibility
+→ rag_export(format="agents", create_symlinks=true)
+# Creates: AGENTS.md + symlinks (CLAUDE.md, GEMINI.md, CONVENTIONS.md)
+
+# Export only decisions and architecture choices
+→ rag_export(memory_types=["decision", "architecture"])
 ```
 
 ### Check health
@@ -188,7 +206,7 @@ Tested on AMD Radeon 890M (integrated GPU) with ROCm:
 
 See [ROADMAP.md](ROADMAP.md) for planned features:
 - [x] Auto-capture from Claude Code sessions
-- [ ] Export memories to CLAUDE.md
+- [x] Export to AGENTS.md/CLAUDE.md/GEMINI.md (multi-agent support)
 - [ ] Web UI dashboard
 - [ ] PyPI package
 

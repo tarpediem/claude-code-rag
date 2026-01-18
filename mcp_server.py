@@ -412,6 +412,46 @@ async def list_tools():
             }
         ),
         Tool(
+            name="rag_export",
+            description="Export memories to a context file (AGENTS.md, CLAUDE.md, GEMINI.md, etc.) for use with AI coding agents.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "format": {
+                        "type": "string",
+                        "description": "Output format: 'agents' (AGENTS.md - universal), 'claude' (CLAUDE.md), 'gemini' (GEMINI.md), 'aider' (CONVENTIONS.md), 'cursor' (.cursor/rules/)",
+                        "enum": ["agents", "claude", "gemini", "aider", "cursor"],
+                        "default": "agents"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope to export: 'project', 'global', or 'all'",
+                        "enum": ["project", "global", "all"],
+                        "default": "all"
+                    },
+                    "memory_types": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Filter by memory types (default: all types). Options: decision, architecture, preference, bugfix, snippet, context"
+                    },
+                    "output_path": {
+                        "type": "string",
+                        "description": "Custom output path (default: auto based on format)"
+                    },
+                    "create_symlinks": {
+                        "type": "boolean",
+                        "description": "Create symlinks for other agents (e.g., CLAUDE.md -> AGENTS.md)",
+                        "default": False
+                    },
+                    "max_entries": {
+                        "type": "integer",
+                        "description": "Maximum entries per section (default: 50)",
+                        "default": 50
+                    }
+                }
+            }
+        ),
+        Tool(
             name="rag_capture",
             description="Auto-capture memories from recent Claude Code sessions. Parses session files and extracts decisions, bugfixes, architecture choices, etc.",
             inputSchema={
@@ -885,6 +925,188 @@ async def call_tool(name: str, arguments: dict):
 
         except requests.exceptions.ConnectionError:
             return [TextContent(type="text", text="Error: Ollama not running. Start with: systemctl start ollama")]
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+    elif name == "rag_export":
+        export_format = arguments.get("format", "agents")
+        scope = arguments.get("scope", SCOPE_ALL)
+        memory_types = arguments.get("memory_types", [])
+        output_path = arguments.get("output_path", "")
+        create_symlinks = arguments.get("create_symlinks", False)
+        max_entries = arguments.get("max_entries", 50)
+
+        # Format mapping
+        FORMAT_FILES = {
+            "agents": "AGENTS.md",
+            "claude": "CLAUDE.md",
+            "gemini": "GEMINI.md",
+            "aider": "CONVENTIONS.md",
+            "cursor": ".cursor/rules/project.mdc"
+        }
+
+        # Memory type display order and section names
+        SECTION_ORDER = ["decision", "architecture", "preference", "bugfix", "snippet", "context"]
+        SECTION_NAMES = {
+            "decision": "Decisions",
+            "architecture": "Architecture",
+            "preference": "Preferences",
+            "bugfix": "Bug Fixes",
+            "snippet": "Code Snippets",
+            "context": "Context"
+        }
+
+        try:
+            # Collect memories from all relevant scopes
+            all_memories = {}  # memory_type -> list of (doc, meta)
+
+            for mem_type in SECTION_ORDER:
+                if memory_types and mem_type not in memory_types:
+                    continue
+                all_memories[mem_type] = []
+
+            scopes_to_check = [SCOPE_PROJECT, SCOPE_GLOBAL] if scope == SCOPE_ALL else [scope]
+
+            for s in scopes_to_check:
+                try:
+                    coll = get_collection(s)
+                    all_data = coll.get(include=["documents", "metadatas"])
+
+                    if not all_data["documents"]:
+                        continue
+
+                    for doc, meta in zip(all_data["documents"], all_data["metadatas"]):
+                        mem_type = meta.get("memory_type", "context")
+                        if mem_type not in all_memories:
+                            if not memory_types:  # Include if no filter
+                                all_memories[mem_type] = []
+                            else:
+                                continue
+                        meta["_scope"] = s
+                        all_memories[mem_type].append((doc, meta))
+                except Exception:
+                    continue
+
+            # Build markdown content
+            lines = []
+
+            # Header based on format
+            if export_format == "agents":
+                lines.append("# AGENTS.md")
+                lines.append("")
+                lines.append("> Universal context file for AI coding agents")
+                lines.append("> Compatible with: Claude Code, Codex CLI, Gemini CLI, OpenCode, Aider, Cursor")
+                lines.append("")
+            elif export_format == "claude":
+                lines.append("# CLAUDE.md")
+                lines.append("")
+                lines.append("> Context file for Claude Code")
+                lines.append("")
+            elif export_format == "gemini":
+                lines.append("# GEMINI.md")
+                lines.append("")
+                lines.append("> Context file for Gemini CLI")
+                lines.append("")
+            elif export_format == "aider":
+                lines.append("# CONVENTIONS.md")
+                lines.append("")
+                lines.append("> Coding conventions for Aider")
+                lines.append("")
+            elif export_format == "cursor":
+                lines.append("# Project Rules")
+                lines.append("")
+                lines.append("> Auto-generated from RAG memory")
+                lines.append("")
+
+            lines.append(f"*Exported: {datetime.now().strftime('%Y-%m-%d %H:%M')}*")
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+
+            total_entries = 0
+            for mem_type in SECTION_ORDER:
+                if mem_type not in all_memories:
+                    continue
+                memories = all_memories[mem_type]
+                if not memories:
+                    continue
+
+                # Sort by indexed_at (most recent first)
+                memories.sort(key=lambda x: x[1].get("indexed_at", ""), reverse=True)
+                memories = memories[:max_entries]
+
+                section_name = SECTION_NAMES.get(mem_type, mem_type.title())
+                lines.append(f"## {section_name}")
+                lines.append("")
+
+                for doc, meta in memories:
+                    scope_icon = "🌐" if meta.get("_scope") == "global" else "📁"
+                    source = meta.get("source", "")
+                    if source.startswith("session:"):
+                        source = "session"
+                    elif source == "manual":
+                        source = "manual"
+                    else:
+                        source = Path(source).name if source else ""
+
+                    # Truncate long entries
+                    content = doc.strip()
+                    if len(content) > 500:
+                        content = content[:500] + "..."
+
+                    # Format as bullet or blockquote based on type
+                    if mem_type == "snippet":
+                        lines.append(f"### {source or 'Snippet'}")
+                        lines.append("```")
+                        lines.append(content)
+                        lines.append("```")
+                    elif mem_type in ("decision", "bugfix"):
+                        lines.append(f"- {scope_icon} **{source}**: {content}")
+                    else:
+                        lines.append(f"- {scope_icon} {content}")
+
+                    lines.append("")
+                    total_entries += 1
+
+                lines.append("")
+
+            # Determine output path
+            if output_path:
+                out_path = Path(os.path.expanduser(output_path))
+            else:
+                out_path = Path(PROJECT_PATH) / FORMAT_FILES[export_format]
+
+            # Create parent dirs if needed (for cursor format)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Write file
+            out_path.write_text("\n".join(lines))
+
+            # Create symlinks if requested (in same directory as output file)
+            symlinks_created = []
+            if create_symlinks and export_format == "agents":
+                link_dir = out_path.parent
+                for other_format, filename in FORMAT_FILES.items():
+                    if other_format == "agents" or other_format == "cursor":
+                        continue
+                    link_path = link_dir / filename
+                    try:
+                        if link_path.exists() or link_path.is_symlink():
+                            link_path.unlink()
+                        link_path.symlink_to(out_path.name)
+                        symlinks_created.append(filename)
+                    except OSError:
+                        pass  # Skip if can't create symlink
+
+            output = f"✅ Exported {total_entries} memories to {out_path}\n"
+            output += f"   Format: {export_format} ({FORMAT_FILES[export_format]})\n"
+            output += f"   Scope: {scope}\n"
+
+            if symlinks_created:
+                output += f"   Symlinks created: {', '.join(symlinks_created)}\n"
+
+            return [TextContent(type="text", text=output)]
+
         except Exception as e:
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 

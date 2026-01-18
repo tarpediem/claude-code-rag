@@ -131,14 +131,16 @@ auto_capture:
 
 ---
 
-## Phase 5 : Export & Sync 📤
+## Phase 5 : Export & Sync 🔄
 
 **Objectif** : La mémoire doit pouvoir sortir du RAG.
 
-### Export CLAUDE.md
-- [ ] Tool `rag_export` : Générer un CLAUDE.md depuis les top memories
-- [ ] Filtrer par projet/type
-- [ ] Format markdown propre
+### Export multi-format ✅
+- [x] Tool `rag_export` : Export vers AGENTS.md, CLAUDE.md, GEMINI.md, etc.
+- [x] Support 5 formats : agents, claude, gemini, aider, cursor
+- [x] Filtrage par memory_type et scope
+- [x] Création de symlinks pour compatibilité cross-agent
+- [x] Format markdown organisé par sections (Decisions, Architecture, Bugfixes...)
 
 ### Sync bidirectionnelle
 - [ ] Watch les CLAUDE.md et auto-réindexer
@@ -245,7 +247,8 @@ auto_capture:
 | 0.3.0 | Phase 3 - Memory types |
 | 0.4.0 | Phase 4 - Auto-capture |
 | 0.4.1 | Dual-scope memory (project + global) |
-| 0.5.0 | Phase 5 - Export & sync |
+| 0.5.0 | Phase 5 - Export multi-format (AGENTS.md, CLAUDE.md, etc.) ✅ |
+| 0.6.0 | Phase 5 - Sync bidirectionnelle |
 | 1.0.0 | Stable, testé, documenté, sur PyPI |
 
 ---
@@ -259,12 +262,13 @@ auto_capture:
 5. ~~**README avec GIF**~~ ✅
 6. ~~**`rag_forget` tool**~~ ✅
 7. ~~**Dual-scope memory**~~ ✅ (project + global)
-7. ~~**`rag_list` tool**~~ ✅
-8. ~~**Filtrage search**~~ ✅
-9. ~~**`rag_capture` tool**~~ ✅ — Auto-capture sessions
-10. **Export CLAUDE.md** — Phase 5
-11. **PyPI package** — Phase 8
+8. ~~**`rag_list` tool**~~ ✅
+9. ~~**Filtrage search**~~ ✅
+10. ~~**`rag_capture` tool**~~ ✅ — Auto-capture sessions
+11. ~~**`rag_export` tool**~~ ✅ — Multi-format export (AGENTS.md, CLAUDE.md, GEMINI.md...)
+12. **Sync bidirectionnelle** — Phase 5
+13. **PyPI package** — Phase 8
 
 ---
 
-**v0.4.0 shipped! 🚀**
+**v0.5.0 shipped! 🚀**
