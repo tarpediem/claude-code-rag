@@ -61,13 +61,14 @@ Add to `~/.claude.json` under your project:
 }
 ```
 
-Restart Claude Code. You now have 7 native tools:
+Restart Claude Code. You now have 8 native tools:
 
 | Tool | Description |
 |------|-------------|
 | `rag_search` | Semantic search in memory (with optional type filter) |
 | `rag_index` | Index files or directories |
 | `rag_store` | Manually store a memory with type/tags |
+| `rag_capture` | Auto-capture from Claude Code sessions |
 | `rag_list` | List memories with filtering |
 | `rag_forget` | Delete memories by query or ID |
 | `rag_stats` | Show memory statistics |
@@ -114,6 +115,15 @@ Claude, search my architecture decisions about caching
 → rag_search(query="caching", memory_type="architecture")
 ```
 
+### Auto-capture from sessions (MCP)
+```
+Claude, capture memories from my recent sessions
+→ rag_capture(max_sessions=5, min_confidence=0.7)
+
+# Preview first without storing:
+→ rag_capture(dry_run=true)
+```
+
 ### Check health
 ```bash
 python claude_rag.py stats
@@ -151,7 +161,7 @@ Tested on AMD Radeon 890M (integrated GPU) with ROCm:
 ## Roadmap
 
 See [ROADMAP.md](ROADMAP.md) for planned features:
-- [ ] Auto-capture from Claude Code sessions
+- [x] Auto-capture from Claude Code sessions
 - [ ] Export memories to CLAUDE.md
 - [ ] Web UI dashboard
 - [ ] PyPI package

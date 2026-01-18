@@ -90,31 +90,41 @@ rag_list(
 )
 ```
 
-### Filtrage par type dans search 🔄
-- [ ] Ajouter `memory_type` en filtre dans `rag_search`
+### Filtrage par type dans search ✅
+- [x] Ajouter `memory_type` en filtre dans `rag_search`
 
 ---
 
-## Phase 4 : Auto-capture 🤖
+## Phase 4 : Auto-capture ✅
 
 **Objectif** : Capturer automatiquement le contexte des sessions Claude Code.
 
-### Hook post-session
-- [ ] Parser les fichiers `.jsonl` dans `~/.claude/projects/`
-- [ ] Extraire les décisions importantes
+### Session Parser ✅
+- [x] Parser les fichiers `.jsonl` dans `~/.claude/projects/`
+- [x] Extraire les décisions importantes
+- [x] Auto-index avec `rag_capture` tool
 - [ ] Résumer les sessions avec un LLM local (optionnel)
-- [ ] Auto-index après chaque session
 
-### Détection de patterns
-- [ ] Détecter les phrases clés : "j'ai décidé", "on va utiliser", "le fix c'est"
-- [ ] Marquer automatiquement le type de mémoire
+### Détection de patterns ✅
+- [x] Détecter les phrases clés : "j'ai décidé", "on va utiliser", "le fix c'est"
+- [x] Marquer automatiquement le type de mémoire (decision, bugfix, architecture, etc.)
+- [x] Scoring de confiance (0-1)
 
-### Config
+### Tool `rag_capture` ✅
+```python
+rag_capture(
+    max_sessions: int,      # Nombre de sessions à parser (défaut: 3)
+    min_confidence: float,  # Seuil de confiance (défaut: 0.7)
+    dry_run: bool           # Preview sans stocker (défaut: false)
+)
+```
+
+### Config (future)
 ```bash
 # ~/.claude-rag/config.yaml
 auto_capture:
   enabled: true
-  session_summary: true  # Résumé auto des sessions
+  session_summary: true
   watch_paths:
     - ~/projets/*/CLAUDE.md
 ```
@@ -246,10 +256,13 @@ auto_capture:
 3. ~~**Chunking markdown**~~ ✅
 4. ~~**`rag_store` tool**~~ ✅
 5. ~~**README avec GIF**~~ ✅
-6. **`rag_forget` tool** — Supprimer des memories
-7. **`rag_list` tool** — Lister les memories
-8. **Filtrage search** — Par type de mémoire
+6. ~~**`rag_forget` tool**~~ ✅
+7. ~~**`rag_list` tool**~~ ✅
+8. ~~**Filtrage search**~~ ✅
+9. ~~**`rag_capture` tool**~~ ✅ — Auto-capture sessions
+10. **Export CLAUDE.md** — Phase 5
+11. **PyPI package** — Phase 8
 
 ---
 
-**Let's ship it! 🚀**
+**v0.4.0 shipped! 🚀**

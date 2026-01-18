@@ -17,6 +17,9 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
+# Import session parser for auto-capture
+from session_parser import parse_recent_sessions, get_all_sessions
+
 # Configuration
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
@@ -335,6 +338,30 @@ async def list_tools():
                         "type": "integer",
                         "description": "Maximum number of results (default: 20)",
                         "default": 20
+                    }
+                }
+            }
+        ),
+        Tool(
+            name="rag_capture",
+            description="Auto-capture memories from recent Claude Code sessions. Parses session files and extracts decisions, bugfixes, architecture choices, etc.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "max_sessions": {
+                        "type": "integer",
+                        "description": "Maximum number of recent sessions to parse (default: 3)",
+                        "default": 3
+                    },
+                    "min_confidence": {
+                        "type": "number",
+                        "description": "Minimum confidence threshold for extraction (0-1, default: 0.7)",
+                        "default": 0.7
+                    },
+                    "dry_run": {
+                        "type": "boolean",
+                        "description": "If true, show what would be captured without storing (default: false)",
+                        "default": False
                     }
                 }
             }
@@ -666,6 +693,81 @@ async def call_tool(name: str, arguments: dict):
 
             return [TextContent(type="text", text=output)]
 
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+    elif name == "rag_capture":
+        max_sessions = arguments.get("max_sessions", 3)
+        min_confidence = arguments.get("min_confidence", 0.7)
+        dry_run = arguments.get("dry_run", False)
+
+        try:
+            collection = get_collection()
+            captured = []
+            skipped = 0
+
+            for memory in parse_recent_sessions(max_sessions=max_sessions):
+                if memory.confidence < min_confidence:
+                    skipped += 1
+                    continue
+
+                if dry_run:
+                    captured.append({
+                        "type": memory.memory_type,
+                        "confidence": memory.confidence,
+                        "content": memory.content[:100] + "...",
+                        "tags": memory.tags
+                    })
+                else:
+                    # Store in RAG
+                    doc_id = hashlib.md5(f"{memory.content}{memory.timestamp}".encode()).hexdigest()[:12]
+                    embedding = get_embedding(memory.content)
+                    metadata = {
+                        "source": f"session:{memory.source}",
+                        "memory_type": memory.memory_type,
+                        "tags": ",".join(memory.tags) if memory.tags else "",
+                        "confidence": str(memory.confidence),
+                        "indexed_at": datetime.now().isoformat(),
+                        "auto_captured": "true"
+                    }
+
+                    collection.upsert(
+                        ids=[doc_id],
+                        embeddings=[embedding],
+                        documents=[memory.content],
+                        metadatas=[metadata]
+                    )
+                    captured.append({
+                        "type": memory.memory_type,
+                        "id": doc_id
+                    })
+
+            if dry_run:
+                output = f"🔍 DRY RUN - Would capture {len(captured)} memories (skipped {skipped} below confidence {min_confidence}):\n\n"
+                by_type = {}
+                for mem in captured:
+                    t = mem["type"]
+                    by_type[t] = by_type.get(t, 0) + 1
+                for t, count in sorted(by_type.items()):
+                    output += f"  • {t}: {count}\n"
+                output += f"\nSample memories:\n"
+                for mem in captured[:5]:
+                    output += f"\n[{mem['type']}] {mem['content']}\n"
+                    if mem['tags']:
+                        output += f"  Tags: {', '.join(mem['tags'])}\n"
+            else:
+                output = f"✅ Captured {len(captured)} memories from {max_sessions} session(s) (skipped {skipped}):\n\n"
+                by_type = {}
+                for mem in captured:
+                    t = mem["type"]
+                    by_type[t] = by_type.get(t, 0) + 1
+                for t, count in sorted(by_type.items()):
+                    output += f"  • {t}: {count}\n"
+
+            return [TextContent(type="text", text=output)]
+
+        except requests.exceptions.ConnectionError:
+            return [TextContent(type="text", text="Error: Ollama not running. Start with: systemctl start ollama")]
         except Exception as e:
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
