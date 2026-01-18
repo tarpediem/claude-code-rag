@@ -689,6 +689,26 @@ async def list_tools():
                 },
                 "required": ["input_path"]
             }
+        ),
+        Tool(
+            name="rag_reset",
+            description="Completely clear the RAG database. Use this to start fresh. DESTRUCTIVE - requires confirmation.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope to clear: 'project', 'global', or 'all'",
+                        "enum": ["project", "global", "all"],
+                        "default": "project"
+                    },
+                    "confirm": {
+                        "type": "boolean",
+                        "description": "Must be true to actually delete. Safety check.",
+                        "default": False
+                    }
+                }
+            }
         )
     ]
 
@@ -1671,6 +1691,67 @@ async def call_tool(name: str, arguments: dict):
                 output += f"   Symlinks created: {', '.join(symlinks_created)}\n"
 
             return [TextContent(type="text", text=output)]
+
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+    elif name == "rag_reset":
+        scope = arguments.get("scope", SCOPE_PROJECT)
+        confirm = arguments.get("confirm", False)
+
+        try:
+            scopes_to_clear = []
+            if scope == SCOPE_ALL:
+                scopes_to_clear = [SCOPE_PROJECT, SCOPE_GLOBAL]
+            else:
+                scopes_to_clear = [scope]
+
+            # Count memories before deletion
+            counts = {}
+            for s in scopes_to_clear:
+                try:
+                    coll = get_collection(s)
+                    counts[s] = coll.count()
+                except Exception:
+                    counts[s] = 0
+
+            total_count = sum(counts.values())
+
+            if total_count == 0:
+                return [TextContent(type="text", text="Database is already empty.")]
+
+            if not confirm:
+                output = f"⚠️ WARNING: This will delete ALL memories!\n\n"
+                for s, count in counts.items():
+                    scope_icon = "🌐" if s == SCOPE_GLOBAL else "📁"
+                    output += f"{scope_icon} {s}: {count} memories\n"
+                output += f"\n**Total: {total_count} memories will be deleted.**\n\n"
+                output += "Set confirm=true to proceed."
+                return [TextContent(type="text", text=output)]
+
+            # Actually delete everything
+            deleted = 0
+            for s in scopes_to_clear:
+                try:
+                    coll = get_collection(s)
+                    all_ids = coll.get()["ids"]
+                    if all_ids:
+                        coll.delete(ids=all_ids)
+                        deleted += len(all_ids)
+                except Exception:
+                    pass
+
+            # Clear sync state for cleared scopes
+            try:
+                sync_state = get_sync_state()
+                keys_to_remove = [k for k in sync_state if any(k.startswith(s + ":") for s in scopes_to_clear)]
+                for k in keys_to_remove:
+                    del sync_state[k]
+                save_sync_state(sync_state)
+            except Exception:
+                pass
+
+            return [TextContent(type="text", text=f"🗑️ Database reset complete. Deleted {deleted} memories.")]
 
         except Exception as e:
             return [TextContent(type="text", text=f"Error: {str(e)}")]

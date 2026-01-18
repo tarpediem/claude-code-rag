@@ -62,7 +62,7 @@ Add to `~/.claude.json` under your project:
 }
 ```
 
-Restart Claude Code. You now have 12 native tools:
+Restart Claude Code. You now have 13 native tools:
 
 | Tool | Description |
 |------|-------------|
@@ -76,6 +76,7 @@ Restart Claude Code. You now have 12 native tools:
 | `rag_forget` | Delete memories by query or ID |
 | `rag_backup` | Export all memories to JSON backup |
 | `rag_restore` | Restore memories from JSON backup |
+| `rag_reset` | Clear entire database (with confirmation) |
 | `rag_stats` | Show memory statistics |
 | `rag_health` | Check Ollama/ChromaDB status |
 
