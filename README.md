@@ -85,20 +85,20 @@ Restart Claude Code. You now have 13 native tools:
 Add this to your `CLAUDE.md` to make Claude **automatically** use the RAG:
 
 ```markdown
-## RAG Local (UTILISER AUTOMATIQUEMENT)
+## Local RAG (USE AUTOMATICALLY)
 
-Un système RAG est disponible via MCP. **Tu DOIS l'utiliser PROACTIVEMENT** :
+A RAG system is available via MCP. **You MUST use it PROACTIVELY**:
 
-### Quand utiliser le RAG :
-- **TOUJOURS chercher d'abord** → `rag_search` AVANT de demander quoi que ce soit
-- **Contexte sur n'importe quel sujet** → Le RAG contient l'historique de tout
-- **Problème/bug** → Vérifier si on l'a déjà résolu avant
-- **Préférences utilisateur** → Les choix passés sont dans le RAG
+### When to use RAG:
+- **ALWAYS search first** → `rag_search` BEFORE asking the user anything
+- **Context on any topic** → RAG contains the history of everything we've done
+- **Problem/bug** → Check if we've already solved it before
+- **User preferences** → Past choices are stored in RAG
 
-### Maintenance :
-- **Début de session** : `rag_sync` pour synchroniser ce fichier
-- **Après modif de ce fichier** : `rag_sync` pour mettre à jour l'index
-- **Nouvelle décision importante** : `rag_store` pour la sauvegarder
+### Maintenance:
+- **Start of session** → `rag_sync` to synchronize this file
+- **After modifying this file** → `rag_sync` to update the index
+- **New important decision** → `rag_store` to save it
 ```
 
 This tells Claude to:
