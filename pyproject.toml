@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "claude-code-rag"
-version = "0.9.3"
+version = "0.9.4"
 description = "Give Claude Code a persistent memory - Local semantic search powered by Ollama + ChromaDB"
 readme = "README.md"
 license = "MIT"

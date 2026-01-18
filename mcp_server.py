@@ -111,10 +111,43 @@ def get_collection(scope: str = SCOPE_PROJECT):
         db_path = get_db_path(scope)
         os.makedirs(db_path, exist_ok=True)
         _clients[scope] = chromadb.PersistentClient(path=db_path)
-        _collections[scope] = _clients[scope].get_or_create_collection(
-            name="memories",
-            metadata={"hnsw:space": "cosine"}
-        )
+        try:
+            _collections[scope] = _clients[scope].get_or_create_collection(
+                name="memories",
+                metadata={"hnsw:space": "cosine"}
+            )
+            # Test the collection is not corrupted
+            _collections[scope].count()
+        except KeyError as e:
+            # ChromaDB schema corruption (e.g., after version upgrade)
+            # IMPORTANT: Backup before deleting!
+            import shutil
+            import logging
+            from datetime import datetime
+
+            logging.warning(f"Corrupted collection detected ({e}): {db_path}")
+
+            # Backup corrupted DB before deleting
+            backup_dir = os.path.join(CHROMA_PATH, "backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = os.path.join(backup_dir, f"corrupted_{scope}_{timestamp}")
+            try:
+                shutil.copytree(db_path, backup_path)
+                logging.warning(f"Backup saved to: {backup_path}")
+            except Exception as backup_err:
+                logging.error(f"Backup failed: {backup_err}")
+
+            # Now reset
+            del _clients[scope]
+            shutil.rmtree(db_path)
+            os.makedirs(db_path, exist_ok=True)
+            _clients[scope] = chromadb.PersistentClient(path=db_path)
+            _collections[scope] = _clients[scope].get_or_create_collection(
+                name="memories",
+                metadata={"hnsw:space": "cosine"}
+            )
+            logging.warning(f"Collection reset: {db_path}")
     return _collections[scope]
 
 
