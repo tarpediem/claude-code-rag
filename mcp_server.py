@@ -96,14 +96,89 @@ def get_collections_for_scope(scope: str) -> list:
         return [(get_collection(SCOPE_PROJECT), SCOPE_PROJECT)]
 
 
-def get_embedding(text: str) -> list:
-    """Get embedding from Ollama"""
+# Simple in-memory cache for embeddings (cleared on restart)
+_embedding_cache = {}
+_cache_hits = 0
+_cache_misses = 0
+
+
+def get_embedding(text: str, use_cache: bool = True) -> list:
+    """Get embedding from Ollama (with caching)"""
+    global _cache_hits, _cache_misses
+
+    # Check cache first
+    cache_key = hashlib.md5(text.encode()).hexdigest()
+    if use_cache and cache_key in _embedding_cache:
+        _cache_hits += 1
+        return _embedding_cache[cache_key]
+
+    _cache_misses += 1
     resp = requests.post(
         f"{OLLAMA_URL}/api/embeddings",
         json={"model": EMBED_MODEL, "prompt": text},
         timeout=30
     )
-    return resp.json()["embedding"]
+    embedding = resp.json()["embedding"]
+
+    # Cache it
+    if use_cache:
+        _embedding_cache[cache_key] = embedding
+
+    return embedding
+
+
+def get_embeddings_batch(texts: list[str], use_cache: bool = True) -> list[list]:
+    """Get embeddings for multiple texts in one API call (much faster)"""
+    global _cache_hits, _cache_misses
+
+    if not texts:
+        return []
+
+    # Check cache for each text
+    results = [None] * len(texts)
+    uncached_indices = []
+    uncached_texts = []
+
+    for i, text in enumerate(texts):
+        cache_key = hashlib.md5(text.encode()).hexdigest()
+        if use_cache and cache_key in _embedding_cache:
+            _cache_hits += 1
+            results[i] = _embedding_cache[cache_key]
+        else:
+            _cache_misses += 1
+            uncached_indices.append(i)
+            uncached_texts.append(text)
+
+    # Batch call for uncached texts
+    if uncached_texts:
+        resp = requests.post(
+            f"{OLLAMA_URL}/api/embed",
+            json={"model": EMBED_MODEL, "input": uncached_texts},
+            timeout=120  # Longer timeout for batch
+        )
+        embeddings = resp.json()["embeddings"]
+
+        # Store in results and cache
+        for idx, embedding in zip(uncached_indices, embeddings):
+            results[idx] = embedding
+            if use_cache:
+                cache_key = hashlib.md5(texts[idx].encode()).hexdigest()
+                _embedding_cache[cache_key] = embedding
+
+    return results
+
+
+def get_cache_stats() -> dict:
+    """Get embedding cache statistics"""
+    total = _cache_hits + _cache_misses
+    hit_rate = (_cache_hits / total * 100) if total > 0 else 0
+    return {
+        "hits": _cache_hits,
+        "misses": _cache_misses,
+        "total": total,
+        "hit_rate": f"{hit_rate:.1f}%",
+        "cache_size": len(_embedding_cache)
+    }
 
 
 def chunk_markdown(content: str, chunk_size: int = 500) -> list[dict]:
@@ -720,7 +795,8 @@ async def call_tool(name: str, arguments: dict):
                 chunks = chunk_content(content, file_type)
 
                 ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
-                embeddings = [get_embedding(c["text"]) for c in chunks]
+                # Batch embeddings for performance
+                embeddings = get_embeddings_batch([c["text"] for c in chunks])
                 metadatas = [{
                     "source": str(filepath),
                     "file_type": file_type,
@@ -831,7 +907,32 @@ async def call_tool(name: str, arguments: dict):
                 for t, c in sorted(all_types.items()):
                     output += f"  - {t}: {c}\n"
             output += f"\n**Project**: {PROJECT_PATH}\n"
-            output += f"**Database**: {CHROMA_PATH}"
+            output += f"**Database**: {CHROMA_PATH}\n"
+
+            # Add cache stats
+            cache_stats = get_cache_stats()
+            output += f"\n**Cache**:\n"
+            output += f"  - Hits: {cache_stats['hits']}\n"
+            output += f"  - Misses: {cache_stats['misses']}\n"
+            output += f"  - Hit rate: {cache_stats['hit_rate']}\n"
+            output += f"  - Cached embeddings: {cache_stats['cache_size']}\n"
+
+            # Add DB size on disk
+            try:
+                import shutil
+                db_size = sum(
+                    sum(os.path.getsize(os.path.join(dirpath, f)) for f in filenames)
+                    for dirpath, _, filenames in os.walk(CHROMA_PATH)
+                )
+                if db_size > 1024 * 1024:
+                    size_str = f"{db_size / 1024 / 1024:.1f} MB"
+                elif db_size > 1024:
+                    size_str = f"{db_size / 1024:.1f} KB"
+                else:
+                    size_str = f"{db_size} bytes"
+                output += f"\n**DB Size**: {size_str}"
+            except Exception:
+                pass
 
             return [TextContent(type="text", text=output)]
         except Exception as e:
@@ -1104,27 +1205,28 @@ async def call_tool(name: str, arguments: dict):
                 file_type = SUPPORTED_EXTENSIONS.get(ext, "text")
                 chunks = chunk_content(content, file_type)
 
-                # Index chunks with hash-based IDs (auto-dedup)
-                chunk_count = 0
-                for i, chunk in enumerate(chunks):
-                    chunk_id = generate_chunk_id(chunk["text"], filepath, i)
-                    embedding = get_embedding(chunk["text"])
-                    metadata = {
-                        "source": source_pattern,
-                        "file_type": file_type,
-                        "memory_type": "context",
-                        "chunk_index": str(i),
-                        "file_hash": current_hash[:16],
-                        "indexed_at": datetime.now().isoformat()
-                    }
+                # Batch embeddings for performance
+                chunk_texts = [chunk["text"] for chunk in chunks]
+                embeddings = get_embeddings_batch(chunk_texts)
 
-                    collection.upsert(
-                        ids=[chunk_id],
-                        embeddings=[embedding],
-                        documents=[chunk["text"]],
-                        metadatas=[metadata]
-                    )
-                    chunk_count += 1
+                # Index all chunks at once
+                ids = [generate_chunk_id(chunk["text"], filepath, i) for i, chunk in enumerate(chunks)]
+                metadatas = [{
+                    "source": source_pattern,
+                    "file_type": file_type,
+                    "memory_type": "context",
+                    "chunk_index": str(i),
+                    "file_hash": current_hash[:16],
+                    "indexed_at": datetime.now().isoformat()
+                } for i in range(len(chunks))]
+
+                collection.upsert(
+                    ids=ids,
+                    embeddings=embeddings,
+                    documents=chunk_texts,
+                    metadatas=metadatas
+                )
+                chunk_count = len(chunks)
 
                 # Update sync state
                 sync_state[state_key] = {

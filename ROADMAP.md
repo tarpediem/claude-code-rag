@@ -166,17 +166,16 @@ auto_capture:
 - [ ] `mxbai-embed-large` (haute qualité, 670MB)
 - [ ] `all-minilm` (tiny & fast, 46MB)
 
-### Optimisations
-- [ ] Batch embeddings (plusieurs chunks en un appel)
-- [ ] Cache des embeddings fréquents
-- [ ] Index incrémental (ne pas réindexer ce qui n'a pas changé)
-- [ ] Async pour les gros indexages
+### Optimisations ✅
+- [x] Batch embeddings (`get_embeddings_batch()` - un appel API pour N chunks)
+- [x] Cache des embeddings (in-memory, hash-based)
+- [x] Index incrémental (`rag_sync` avec hash SHA256)
+- [ ] Async pour les gros indexages (optionnel)
 
-### Métriques
-- [ ] Temps d'indexation par fichier
-- [ ] Temps de recherche moyen
-- [ ] Taille de la DB
-- [ ] Hit rate du cache
+### Métriques ✅
+- [x] Taille de la DB sur disque
+- [x] Hit rate du cache
+- [x] Stats dans `rag_stats` (hits, misses, cache size)
 
 ---
 
@@ -253,6 +252,7 @@ auto_capture:
 | 0.5.0 | Phase 5 - Export multi-format (AGENTS.md, CLAUDE.md, etc.) ✅ |
 | 0.6.0 | Phase 5 - Sync bidirectionnelle (`rag_sync` + protection anti-boucle) ✅ |
 | 0.7.0 | Phase 5 - Backup/Restore (`rag_backup`, `rag_restore`) ✅ |
+| 0.8.0 | Phase 6 - Performance (batch embeddings, cache, métriques) ✅ |
 | 1.0.0 | Stable, testé, documenté, sur PyPI |
 
 ---
@@ -276,14 +276,14 @@ auto_capture:
 
 ---
 
-**v0.7.0 shipped! 🚀**
+**v0.8.0 shipped! 🚀**
 
-New in v0.7.0:
-- `rag_backup` - Full JSON export (documents, metadatas, embeddings)
-- `rag_restore` - Import with merge or replace mode
-- Embeddings saved for fast restore without recalculation
+New in v0.8.0:
+- Batch embeddings (`get_embeddings_batch()`) - much faster indexing
+- In-memory embedding cache with hit rate tracking
+- Enhanced `rag_stats` with cache stats and DB size
 
-Previous (v0.6.0):
-- `rag_sync` tool for bidirectional sync
-- Hash-based change detection (SHA256)
-- Protection against overwriting source files
+Previous versions:
+- v0.7.0: Backup/Restore
+- v0.6.0: Bidirectional sync
+- v0.5.0: Multi-format export
