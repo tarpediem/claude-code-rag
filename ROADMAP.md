@@ -6,86 +6,92 @@ Faire de claude-code-rag LA solution de mémoire persistante pour Claude Code : 
 
 ---
 
-## Phase 1 : Stabilisation & Polish ✅ → 🔄
+## Phase 1 : Stabilisation & Polish ✅
 
 **Objectif** : Un MCP server qui marche nickel out of the box.
 
 ### Done ✅
-- [x] MCP server basique avec 3 tools
+- [x] MCP server basique avec 5 tools
 - [x] Intégration Ollama + ChromaDB
 - [x] CLI standalone (`claude_rag.py`)
 - [x] TUI avec Textual (`rag_tui.py`)
+- [x] **Tests** : Tests unitaires pour le chunking
+- [x] **Health check** : Tool `rag_health` pour vérifier Ollama/ChromaDB
+- [x] **requirements.txt** : Complet avec mcp
 
-### À faire 🔄
-- [ ] **Tests** : Ajouter des tests unitaires basiques
-- [ ] **Error handling** : Meilleurs messages d'erreur (Ollama pas lancé, modèle pas pull, etc.)
-- [ ] **Health check** : Tool `rag_health` pour vérifier que tout est OK
+### À faire (optionnel)
+- [ ] **Error handling** : Meilleurs messages d'erreur
 - [ ] **Logging** : Option debug pour troubleshoot
-- [ ] **requirements.txt** : Ajouter `mcp` si manquant
 
 ---
 
-## Phase 2 : Indexation Améliorée 📁
+## Phase 2 : Indexation Améliorée ✅
 
 **Objectif** : Indexer plus que du markdown, de manière intelligente.
 
-### Support multi-formats
-- [ ] `.txt` — Texte brut
-- [ ] `.py` — Code Python
-- [ ] `.js` / `.ts` — JavaScript/TypeScript
-- [ ] `.json` — Configs JSON
-- [ ] `.yaml` / `.yml` — Configs YAML
-- [ ] `.sh` — Scripts shell
-- [ ] `.toml` — Configs TOML
+### Support multi-formats ✅
+- [x] `.txt` — Texte brut
+- [x] `.py` — Code Python (split par def/class)
+- [x] `.js` / `.ts` — JavaScript/TypeScript (split par function/const/export)
+- [x] `.json` — Configs JSON
+- [x] `.yaml` / `.yml` — Configs YAML
+- [x] `.sh` / `.fish` — Scripts shell
+- [x] `.toml` — Configs TOML
 
-### Chunking intelligent
-- [ ] **Markdown** : Split par headers (`## Section`)
-- [ ] **Code Python** : Split par fonctions/classes (`def`, `class`)
-- [ ] **Code JS/TS** : Split par fonctions (`function`, `const`, `export`)
-- [ ] **Configs** : Garder les blocs cohérents
-- [ ] **Chunk overlap** : Ajouter un overlap de ~50 chars pour le contexte
+### Chunking intelligent ✅
+- [x] **Markdown** : Split par headers (`## Section`)
+- [x] **Code Python** : Split par fonctions/classes
+- [x] **Code JS/TS** : Split par fonctions
+- [x] **Configs** : Chunking générique avec overlap
 
 ### Métadonnées enrichies
-- [ ] `file_type` : Extension du fichier
-- [ ] `file_path` : Chemin complet
+- [x] `file_type` : Extension du fichier
+- [x] `source` : Chemin complet
 - [ ] `indexed_at` : Timestamp d'indexation
 - [ ] `file_hash` : Hash pour détecter les changements
 - [ ] `chunk_index` : Position dans le fichier
 
 ---
 
-## Phase 3 : Memory Types & Organisation 🧠
+## Phase 3 : Memory Types & Organisation 🔄
 
 **Objectif** : Pas juste "du texte", mais des types de mémoire structurés.
 
-### Types de mémoire
-- [ ] `context` — Contexte général (fichiers indexés)
-- [ ] `decision` — Décisions techniques prises
-- [ ] `bugfix` — Bugs résolus et solutions
-- [ ] `architecture` — Choix d'architecture
-- [ ] `preference` — Préférences utilisateur
-- [ ] `snippet` — Bouts de code réutilisables
+### Types de mémoire ✅
+- [x] `context` — Contexte général (fichiers indexés)
+- [x] `decision` — Décisions techniques prises
+- [x] `bugfix` — Bugs résolus et solutions
+- [x] `architecture` — Choix d'architecture
+- [x] `preference` — Préférences utilisateur
+- [x] `snippet` — Bouts de code réutilisables
 
-### Nouveau tool : `rag_store`
+### Tool `rag_store` ✅
 ```python
 rag_store(
     content: str,       # Le contenu à stocker
     memory_type: str,   # Type de mémoire
-    tags: list[str],    # Tags optionnels
-    project: str        # Projet associé
+    tags: list[str]     # Tags optionnels
 )
 ```
 
-### Nouveau tool : `rag_forget`
+### Tool `rag_forget` 🔄
 ```python
 rag_forget(
-    memory_id: str      # ID ou début d'ID
+    query: str,         # Recherche les memories à supprimer
+    confirm: bool       # Confirmation requise
 )
 ```
 
-### Filtrage par type/projet
-- [ ] Ajouter `memory_type` et `project` en filtre dans `rag_search`
-- [ ] Tool `rag_list` pour lister les mémoires avec filtres
+### Tool `rag_list` 🔄
+```python
+rag_list(
+    memory_type: str,   # Filtrer par type (optionnel)
+    limit: int          # Nombre max de résultats
+)
+```
+
+### Filtrage par type dans search 🔄
+- [ ] Ajouter `memory_type` en filtre dans `rag_search`
 
 ---
 
@@ -233,13 +239,16 @@ auto_capture:
 
 ---
 
-## Priorités immédiates (cette semaine)
+## Priorités immédiates
 
-1. **Tests basiques** — Que ça casse pas
-2. **Multi-formats** — Au moins .txt, .py, .json
-3. **Chunking markdown** — Split par `##`
-4. **`rag_store` tool** — Stocker manuellement des memories
-5. **README avec GIF** — Prêt pour Reddit
+1. ~~**Tests basiques**~~ ✅
+2. ~~**Multi-formats**~~ ✅
+3. ~~**Chunking markdown**~~ ✅
+4. ~~**`rag_store` tool**~~ ✅
+5. ~~**README avec GIF**~~ ✅
+6. **`rag_forget` tool** — Supprimer des memories
+7. **`rag_list` tool** — Lister les memories
+8. **Filtrage search** — Par type de mémoire
 
 ---
 

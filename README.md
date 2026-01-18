@@ -61,13 +61,15 @@ Add to `~/.claude.json` under your project:
 }
 ```
 
-Restart Claude Code. You now have 5 native tools:
+Restart Claude Code. You now have 7 native tools:
 
 | Tool | Description |
 |------|-------------|
-| `rag_search` | Semantic search in memory |
+| `rag_search` | Semantic search in memory (with optional type filter) |
 | `rag_index` | Index files or directories |
 | `rag_store` | Manually store a memory with type/tags |
+| `rag_list` | List memories with filtering |
+| `rag_forget` | Delete memories by query or ID |
 | `rag_stats` | Show memory statistics |
 | `rag_health` | Check Ollama/ChromaDB status |
 
@@ -92,6 +94,24 @@ python claude_rag.py search "how to deploy"
 ```
 Claude, store this: "We chose PostgreSQL over MongoDB for ACID compliance"
 → rag_store(content="...", memory_type="decision", tags=["database"])
+```
+
+### List memories (MCP)
+```
+Claude, show me all my bugfix memories
+→ rag_list(memory_type="bugfix")
+```
+
+### Delete memories (MCP)
+```
+Claude, forget everything about the old auth system
+→ rag_forget(query="old auth system", confirm=true)
+```
+
+### Search with filter (MCP)
+```
+Claude, search my architecture decisions about caching
+→ rag_search(query="caching", memory_type="architecture")
 ```
 
 ### Check health

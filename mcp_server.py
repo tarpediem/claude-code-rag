@@ -229,6 +229,11 @@ async def list_tools():
                         "type": "integer",
                         "description": "Number of results to return (default: 3)",
                         "default": 3
+                    },
+                    "memory_type": {
+                        "type": "string",
+                        "description": "Filter by memory type: context, decision, bugfix, architecture, preference, snippet",
+                        "enum": ["context", "decision", "bugfix", "architecture", "preference", "snippet"]
                     }
                 },
                 "required": ["query"]
@@ -288,6 +293,51 @@ async def list_tools():
                 "type": "object",
                 "properties": {}
             }
+        ),
+        Tool(
+            name="rag_forget",
+            description="Delete memories from the RAG database. Search for memories matching a query and delete them.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query to find memories to delete"
+                    },
+                    "memory_id": {
+                        "type": "string",
+                        "description": "Specific memory ID to delete (alternative to query)"
+                    },
+                    "confirm": {
+                        "type": "boolean",
+                        "description": "Must be true to actually delete. If false, just shows what would be deleted.",
+                        "default": False
+                    }
+                }
+            }
+        ),
+        Tool(
+            name="rag_list",
+            description="List memories in the RAG database with optional filtering.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "memory_type": {
+                        "type": "string",
+                        "description": "Filter by memory type: context, decision, bugfix, architecture, preference, snippet",
+                        "enum": ["context", "decision", "bugfix", "architecture", "preference", "snippet"]
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "Filter by source (partial match)"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results (default: 20)",
+                        "default": 20
+                    }
+                }
+            }
         )
     ]
 
@@ -299,6 +349,7 @@ async def call_tool(name: str, arguments: dict):
     if name == "rag_search":
         query = arguments.get("query", "")
         n_results = arguments.get("n_results", 3)
+        memory_type = arguments.get("memory_type")
 
         if not query:
             return [TextContent(type="text", text="Error: query is required")]
@@ -308,26 +359,41 @@ async def call_tool(name: str, arguments: dict):
             collection = get_collection()
             query_embedding = get_embedding(query)
 
+            # Build where filter if memory_type specified
+            where_filter = None
+            if memory_type:
+                where_filter = {"memory_type": memory_type}
+
             results = collection.query(
                 query_embeddings=[query_embedding],
-                n_results=n_results
+                n_results=n_results * 2 if memory_type else n_results,  # Fetch more if filtering
+                where=where_filter
             )
 
             if not results["documents"][0]:
-                return [TextContent(type="text", text="No results found.")]
+                filter_msg = f" (type: {memory_type})" if memory_type else ""
+                return [TextContent(type="text", text=f"No results found{filter_msg}.")]
 
-            output = f"Search completed in {time.time()-start:.2f}s\n\n"
+            output = f"Search completed in {time.time()-start:.2f}s"
+            if memory_type:
+                output += f" (filtered: {memory_type})"
+            output += "\n\n"
+
+            shown = 0
             for i, (doc, meta, dist) in enumerate(zip(
                 results["documents"][0],
                 results["metadatas"][0],
                 results["distances"][0]
             ), 1):
+                if shown >= n_results:
+                    break
                 score = 1 - dist
                 source = meta.get("source", "unknown")
                 mem_type = meta.get("memory_type", "")
                 type_str = f" [{mem_type}]" if mem_type else ""
-                output += f"[{i}] Score: {score:.3f}{type_str} | Source: {source}\n"
+                output += f"[{shown+1}] Score: {score:.3f}{type_str} | Source: {source}\n"
                 output += f"    {doc[:300]}...\n\n"
+                shown += 1
 
             return [TextContent(type="text", text=output)]
 
@@ -490,6 +556,118 @@ async def call_tool(name: str, arguments: dict):
 
         except Exception as e:
             return [TextContent(type="text", text=f"❌ RAG Health Check FAILED\n\nError: {str(e)}")]
+
+    elif name == "rag_forget":
+        query = arguments.get("query", "")
+        memory_id = arguments.get("memory_id", "")
+        confirm = arguments.get("confirm", False)
+
+        if not query and not memory_id:
+            return [TextContent(type="text", text="Error: either 'query' or 'memory_id' is required")]
+
+        try:
+            collection = get_collection()
+
+            if memory_id:
+                # Delete by specific ID
+                try:
+                    collection.delete(ids=[memory_id])
+                    return [TextContent(type="text", text=f"Deleted memory with ID: {memory_id}")]
+                except Exception:
+                    return [TextContent(type="text", text=f"Memory ID not found: {memory_id}")]
+
+            # Search for memories matching query
+            query_embedding = get_embedding(query)
+            results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=10
+            )
+
+            if not results["documents"][0]:
+                return [TextContent(type="text", text="No memories found matching query.")]
+
+            ids_to_delete = results["ids"][0]
+            docs = results["documents"][0]
+            metas = results["metadatas"][0]
+
+            if not confirm:
+                # Preview mode
+                output = f"⚠️ Found {len(ids_to_delete)} memories to delete:\n\n"
+                for i, (doc_id, doc, meta) in enumerate(zip(ids_to_delete, docs, metas), 1):
+                    source = meta.get("source", "unknown")
+                    output += f"[{i}] ID: {doc_id} | Source: {source}\n"
+                    output += f"    {doc[:100]}...\n\n"
+                output += "Set confirm=true to delete these memories."
+                return [TextContent(type="text", text=output)]
+
+            # Actually delete
+            collection.delete(ids=ids_to_delete)
+            return [TextContent(type="text", text=f"✅ Deleted {len(ids_to_delete)} memories.")]
+
+        except requests.exceptions.ConnectionError:
+            return [TextContent(type="text", text="Error: Ollama not running. Start with: systemctl start ollama")]
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+    elif name == "rag_list":
+        memory_type = arguments.get("memory_type")
+        source_filter = arguments.get("source", "")
+        limit = arguments.get("limit", 20)
+
+        try:
+            collection = get_collection()
+
+            # Get all documents with metadata
+            all_data = collection.get(include=["documents", "metadatas"])
+
+            if not all_data["documents"]:
+                return [TextContent(type="text", text="No memories in database.")]
+
+            # Filter results
+            filtered = []
+            for doc_id, doc, meta in zip(all_data["ids"], all_data["documents"], all_data["metadatas"]):
+                # Apply filters
+                if memory_type and meta.get("memory_type") != memory_type:
+                    continue
+                if source_filter and source_filter.lower() not in meta.get("source", "").lower():
+                    continue
+                filtered.append((doc_id, doc, meta))
+
+            if not filtered:
+                filter_msg = []
+                if memory_type:
+                    filter_msg.append(f"type={memory_type}")
+                if source_filter:
+                    filter_msg.append(f"source contains '{source_filter}'")
+                return [TextContent(type="text", text=f"No memories found with filters: {', '.join(filter_msg)}")]
+
+            # Sort by indexed_at if available
+            filtered.sort(key=lambda x: x[2].get("indexed_at", ""), reverse=True)
+
+            # Limit results
+            filtered = filtered[:limit]
+
+            output = f"Listing {len(filtered)} memories"
+            if memory_type:
+                output += f" (type: {memory_type})"
+            if source_filter:
+                output += f" (source: *{source_filter}*)"
+            output += ":\n\n"
+
+            for doc_id, doc, meta in filtered:
+                source = meta.get("source", "unknown")
+                mem_type = meta.get("memory_type", meta.get("file_type", ""))
+                indexed_at = meta.get("indexed_at", "")[:10]  # Just the date
+                type_str = f"[{mem_type}] " if mem_type else ""
+                output += f"• {type_str}{doc_id} | {source}"
+                if indexed_at:
+                    output += f" | {indexed_at}"
+                output += f"\n  {doc[:80]}...\n\n"
+
+            return [TextContent(type="text", text=output)]
+
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
