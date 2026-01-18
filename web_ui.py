@@ -9,6 +9,7 @@ import os
 import sys
 from pathlib import Path
 from datetime import datetime
+from string import Template
 from typing import Optional
 
 from fastapi import FastAPI, Request, Form, Query, HTTPException
@@ -620,28 +621,28 @@ HTML_BASE = """
             </a>
 
             <nav class="nav">
-                <a href="/" class="nav-item {active_home}">
+                <a href="/" class="nav-item $active_home">
                     <span>📊</span> Dashboard
                 </a>
-                <a href="/search" class="nav-item {active_search}">
+                <a href="/search" class="nav-item $active_search">
                     <span>🔍</span> Search
                 </a>
-                <a href="/memories" class="nav-item {active_memories}">
+                <a href="/memories" class="nav-item $active_memories">
                     <span>📚</span> Memories
                 </a>
-                <a href="/index" class="nav-item {active_index}">
+                <a href="/index" class="nav-item $active_index">
                     <span>📁</span> Index
                 </a>
             </nav>
 
             <div class="stat-mini">
-                <div class="stat-mini-value">{total_count}</div>
+                <div class="stat-mini-value">$total_count</div>
                 <div class="stat-mini-label">Total Memories</div>
             </div>
         </aside>
 
         <main class="main">
-            {content}
+            $content
         </main>
     </div>
 </body>
@@ -654,7 +655,7 @@ def render_page(content: str, active: str = "", stats: dict = None) -> str:
     if stats is None:
         stats = get_stats()
 
-    return HTML_BASE.format(
+    return Template(HTML_BASE).safe_substitute(
         content=content,
         total_count=stats["total_count"],
         active_home="active" if active == "home" else "",
