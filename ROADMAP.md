@@ -195,11 +195,12 @@ auto_capture:
 - [ ] Delete/edit depuis la TUI
 - [ ] Search en temps réel
 
-### CLI amélioré
-- [ ] `claude-rag init` : Setup initial
-- [ ] `claude-rag doctor` : Check que tout est OK
-- [ ] `claude-rag serve` : Lance le MCP server
-- [ ] `claude-rag export --project=monprojet`
+### CLI amélioré ✅
+- [x] `claude-rag init` : Setup initial (check Ollama, pull model, create DB)
+- [x] `claude-rag doctor` : Diagnostique complet (Ollama, DB, MCP, Claude config)
+- [x] `claude-rag serve` : Lance le MCP server
+- [x] `claude-rag ui` : Lance la TUI
+- [x] argparse avec sous-commandes propres
 
 ---
 
@@ -253,6 +254,7 @@ auto_capture:
 | 0.6.0 | Phase 5 - Sync bidirectionnelle (`rag_sync` + protection anti-boucle) ✅ |
 | 0.7.0 | Phase 5 - Backup/Restore (`rag_backup`, `rag_restore`) ✅ |
 | 0.8.0 | Phase 6 - Performance (batch embeddings, cache, métriques) ✅ |
+| 0.9.0 | Phase 7 - CLI amélioré (init, doctor, serve, ui) ✅ |
 | 1.0.0 | Stable, testé, documenté, sur PyPI |
 
 ---
@@ -276,14 +278,15 @@ auto_capture:
 
 ---
 
-**v0.8.0 shipped! 🚀**
+**v0.9.0 shipped! 🚀**
 
-New in v0.8.0:
-- Batch embeddings (`get_embeddings_batch()`) - much faster indexing
-- In-memory embedding cache with hit rate tracking
-- Enhanced `rag_stats` with cache stats and DB size
+New in v0.9.0:
+- `claude-rag init` - Setup wizard
+- `claude-rag doctor` - Full diagnostics
+- `claude-rag serve` - Start MCP server
+- argparse-based CLI with subcommands
 
 Previous versions:
+- v0.8.0: Performance (batch, cache, metrics)
 - v0.7.0: Backup/Restore
 - v0.6.0: Bidirectional sync
-- v0.5.0: Multi-format export
