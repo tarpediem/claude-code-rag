@@ -142,9 +142,11 @@ auto_capture:
 - [x] Création de symlinks pour compatibilité cross-agent
 - [x] Format markdown organisé par sections (Decisions, Architecture, Bugfixes...)
 
-### Sync bidirectionnelle
-- [ ] Watch les CLAUDE.md et auto-réindexer
-- [ ] Merge intelligent (pas de duplicatas)
+### Sync bidirectionnelle ✅
+- [x] Tool `rag_sync` : Sync on-demand avec détection de changements (hash SHA256)
+- [x] Hash-based IDs pour auto-dedup (ChromaDB upsert)
+- [x] `sync_state.json` : Track les fichiers indexés et leurs hash
+- [x] Protection anti-boucle : Refuse d'exporter vers fichiers sources
 
 ### Backup & Restore
 - [ ] `rag_backup` : Export JSON de toute la DB
@@ -248,7 +250,7 @@ auto_capture:
 | 0.4.0 | Phase 4 - Auto-capture |
 | 0.4.1 | Dual-scope memory (project + global) |
 | 0.5.0 | Phase 5 - Export multi-format (AGENTS.md, CLAUDE.md, etc.) ✅ |
-| 0.6.0 | Phase 5 - Sync bidirectionnelle |
+| 0.6.0 | Phase 5 - Sync bidirectionnelle (`rag_sync` + protection anti-boucle) ✅ |
 | 1.0.0 | Stable, testé, documenté, sur PyPI |
 
 ---
@@ -266,9 +268,16 @@ auto_capture:
 9. ~~**Filtrage search**~~ ✅
 10. ~~**`rag_capture` tool**~~ ✅ — Auto-capture sessions
 11. ~~**`rag_export` tool**~~ ✅ — Multi-format export (AGENTS.md, CLAUDE.md, GEMINI.md...)
-12. **Sync bidirectionnelle** — Phase 5
-13. **PyPI package** — Phase 8
+12. ~~**Sync bidirectionnelle**~~ ✅ — `rag_sync` + protection anti-boucle
+13. **Backup & Restore** — Phase 5
+14. **PyPI package** — Phase 8
 
 ---
 
-**v0.5.0 shipped! 🚀**
+**v0.6.0 shipped! 🚀**
+
+New in v0.6.0:
+- `rag_sync` tool for bidirectional sync
+- Hash-based change detection (SHA256)
+- Auto-dedup via hash-based chunk IDs
+- Protection against overwriting source files

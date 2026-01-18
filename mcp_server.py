@@ -31,6 +31,9 @@ SCOPE_GLOBAL = "global"
 SCOPE_PROJECT = "project"
 SCOPE_ALL = "all"
 
+# Sync state file (tracks file hashes for change detection)
+SYNC_STATE_FILE = os.path.join(CHROMA_PATH, "sync_state.json")
+
 # Supported file extensions
 SUPPORTED_EXTENSIONS = {
     ".md": "markdown",
@@ -218,6 +221,56 @@ def chunk_content(content: str, file_type: str, chunk_size: int = 500) -> list[d
         return chunk_javascript(content, chunk_size)
     else:
         return chunk_generic(content, chunk_size)
+
+
+# ============================================================================
+# Sync State Management (for bidirectional sync)
+# ============================================================================
+
+def get_sync_state() -> dict:
+    """Load sync state from disk"""
+    if os.path.exists(SYNC_STATE_FILE):
+        try:
+            with open(SYNC_STATE_FILE, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return {}
+    return {}
+
+
+def save_sync_state(state: dict):
+    """Save sync state to disk"""
+    os.makedirs(os.path.dirname(SYNC_STATE_FILE), exist_ok=True)
+    with open(SYNC_STATE_FILE, 'w') as f:
+        json.dump(state, f, indent=2)
+
+
+def get_file_hash(filepath: str) -> str:
+    """Get SHA256 hash of file content"""
+    with open(filepath, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def generate_chunk_id(content: str, source: str, chunk_index: int) -> str:
+    """Generate unique ID based on content hash (enables auto-dedup via upsert)"""
+    content_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
+    source_hash = hashlib.md5(source.encode()).hexdigest()[:8]
+    return f"{source_hash}_{chunk_index}_{content_hash}"
+
+
+def get_indexed_sources(scope: str) -> set:
+    """Get all source files currently indexed in a scope"""
+    try:
+        coll = get_collection(scope)
+        data = coll.get(include=["metadatas"])
+        sources = set()
+        for meta in data.get("metadatas", []):
+            source = meta.get("source", "")
+            if source.startswith("file:"):
+                sources.add(source.replace("file:", ""))
+        return sources
+    except Exception:
+        return set()
 
 
 def check_ollama_health() -> dict:
@@ -470,6 +523,31 @@ async def list_tools():
                     "dry_run": {
                         "type": "boolean",
                         "description": "If true, show what would be captured without storing (default: false)",
+                        "default": False
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope: 'project' (default) or 'global'",
+                        "enum": ["project", "global"],
+                        "default": "project"
+                    }
+                }
+            }
+        ),
+        Tool(
+            name="rag_sync",
+            description="Sync watched files with RAG memory. Detects changes via content hash and reindexes only modified files. Use this to keep RAG in sync with your CLAUDE.md and other context files.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "paths": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Paths to sync (default: ~/CLAUDE.md + project CLAUDE.md). Supports ~ expansion."
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "description": "Force reindex even if content unchanged",
                         "default": False
                     },
                     "scope": {
@@ -928,6 +1006,123 @@ async def call_tool(name: str, arguments: dict):
         except Exception as e:
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
+    elif name == "rag_sync":
+        paths = arguments.get("paths", [])
+        force = arguments.get("force", False)
+        scope = arguments.get("scope", SCOPE_PROJECT)
+
+        # Default paths if not specified
+        if not paths:
+            paths = [
+                os.path.expanduser("~/CLAUDE.md"),
+                os.path.join(PROJECT_PATH, "CLAUDE.md"),
+            ]
+        else:
+            paths = [os.path.expanduser(p) for p in paths]
+
+        try:
+            collection = get_collection(scope)
+            sync_state = get_sync_state()
+            updated = []
+            skipped = []
+            not_found = []
+
+            for filepath in paths:
+                if not os.path.exists(filepath):
+                    not_found.append(filepath)
+                    continue
+
+                # Get current file hash
+                current_hash = get_file_hash(filepath)
+                state_key = f"{scope}:{filepath}"
+                stored_hash = sync_state.get(state_key, {}).get("hash")
+
+                # Skip if unchanged (unless force)
+                if not force and current_hash == stored_hash:
+                    skipped.append(filepath)
+                    continue
+
+                # Delete old chunks for this file (clean reindex)
+                source_pattern = f"file:{filepath}"
+                try:
+                    existing = collection.get(
+                        where={"source": source_pattern},
+                        include=["metadatas"]
+                    )
+                    if existing["ids"]:
+                        collection.delete(ids=existing["ids"])
+                except Exception:
+                    pass  # Collection might not have where filter support
+
+                # Read and chunk the file
+                content = Path(filepath).read_text()
+                ext = Path(filepath).suffix.lower()
+                file_type = SUPPORTED_EXTENSIONS.get(ext, "text")
+                chunks = chunk_content(content, file_type)
+
+                # Index chunks with hash-based IDs (auto-dedup)
+                chunk_count = 0
+                for i, chunk in enumerate(chunks):
+                    chunk_id = generate_chunk_id(chunk["text"], filepath, i)
+                    embedding = get_embedding(chunk["text"])
+                    metadata = {
+                        "source": source_pattern,
+                        "file_type": file_type,
+                        "memory_type": "context",
+                        "chunk_index": str(i),
+                        "file_hash": current_hash[:16],
+                        "indexed_at": datetime.now().isoformat()
+                    }
+
+                    collection.upsert(
+                        ids=[chunk_id],
+                        embeddings=[embedding],
+                        documents=[chunk["text"]],
+                        metadatas=[metadata]
+                    )
+                    chunk_count += 1
+
+                # Update sync state
+                sync_state[state_key] = {
+                    "hash": current_hash,
+                    "indexed_at": datetime.now().isoformat(),
+                    "chunks": chunk_count
+                }
+                updated.append({"path": filepath, "chunks": chunk_count})
+
+            # Save sync state
+            save_sync_state(sync_state)
+
+            # Build output
+            output = f"🔄 Sync completed (scope: {scope})\n\n"
+
+            if updated:
+                output += f"**Updated ({len(updated)}):**\n"
+                for item in updated:
+                    output += f"  ✅ {item['path']} ({item['chunks']} chunks)\n"
+                output += "\n"
+
+            if skipped:
+                output += f"**Unchanged ({len(skipped)}):**\n"
+                for path in skipped:
+                    output += f"  ⏭️  {path}\n"
+                output += "\n"
+
+            if not_found:
+                output += f"**Not found ({len(not_found)}):**\n"
+                for path in not_found:
+                    output += f"  ❌ {path}\n"
+
+            if not updated and not skipped and not not_found:
+                output += "No files to sync.\n"
+
+            return [TextContent(type="text", text=output)]
+
+        except requests.exceptions.ConnectionError:
+            return [TextContent(type="text", text="Error: Ollama not running. Start with: systemctl start ollama")]
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+
     elif name == "rag_export":
         export_format = arguments.get("format", "agents")
         scope = arguments.get("scope", SCOPE_ALL)
@@ -1075,6 +1270,22 @@ async def call_tool(name: str, arguments: dict):
                 out_path = Path(os.path.expanduser(output_path))
             else:
                 out_path = Path(PROJECT_PATH) / FORMAT_FILES[export_format]
+
+            # PROTECTION: Refuse to overwrite source files that are indexed
+            # This prevents the bug where export overwrites CLAUDE.md
+            sync_state = get_sync_state()
+            out_path_str = str(out_path.resolve())
+            for state_key in sync_state:
+                if state_key.endswith(out_path_str):
+                    return [TextContent(
+                        type="text",
+                        text=f"❌ Error: Cannot export to '{out_path}' - this file is indexed as a source.\n\n"
+                             f"This would overwrite your source file and cause data loss!\n\n"
+                             f"**Solutions:**\n"
+                             f"1. Use a different output file: `output_path=\"AGENTS.md\"`\n"
+                             f"2. Use 'agents' format instead of 'claude'\n"
+                             f"3. Manually delete the file from sync state if you really want to overwrite"
+                    )]
 
             # Create parent dirs if needed (for cursor format)
             out_path.parent.mkdir(parents=True, exist_ok=True)
