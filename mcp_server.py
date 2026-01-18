@@ -1195,13 +1195,19 @@ async def call_tool(name: str, arguments: dict):
                     coll = get_collection(s)
                     data = coll.get(include=["documents", "metadatas", "embeddings"])
 
-                    if data["ids"]:
+                    if data["ids"] and len(data["ids"]) > 0:
+                        # Handle embeddings (can be numpy array or list)
+                        embeddings = data.get("embeddings")
+                        if embeddings is not None:
+                            embeddings = [list(e) if hasattr(e, 'tolist') else e for e in embeddings]
+                        else:
+                            embeddings = []
+
                         backup_data["collections"][s] = {
-                            "ids": data["ids"],
-                            "documents": data["documents"],
-                            "metadatas": data["metadatas"],
-                            # Embeddings are lists of floats, store them too for full restore
-                            "embeddings": data["embeddings"] if data.get("embeddings") else []
+                            "ids": list(data["ids"]),
+                            "documents": list(data["documents"]),
+                            "metadatas": list(data["metadatas"]),
+                            "embeddings": embeddings
                         }
                         total_memories += len(data["ids"])
                 except Exception as e:
