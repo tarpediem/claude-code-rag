@@ -9,6 +9,8 @@
 
 ![Dashboard](assets/web-dashboard.png)
 
+_Modern dark neon interface with glassmorphism effects_
+
 ## ✨ Features
 
 ### 🎯 Core Capabilities
@@ -21,7 +23,7 @@
 
 ### 🛠️ Interfaces
 - **🔌 MCP Integration** – Native Claude Code tools (13 tools available)
-- **🌐 Web Dashboard** – Beautiful Apple-inspired UI for browsing memories
+- **🌐 Web Dashboard** – Modern dark neon UI with glassmorphism effects and Material Symbols icons
 - **💻 CLI** – Fast command-line interface for power users
 - **📟 TUI** – Interactive terminal UI with real-time search
 
@@ -123,13 +125,37 @@ claude-rag web
 # Opens at http://localhost:8420
 ```
 
-Features:
-- 📊 **Dashboard** – Overview of all memories with type breakdown
-- 🔍 **Semantic Search** – Real-time search with filters
-- 📚 **Browse Memories** – Filter by type, scope, and source
-- 📂 **Index Files** – Drag-and-drop file indexing
+**Design Features:**
+- 🎨 **Dark Neon Theme** – Cyan/indigo color scheme with mesh gradients
+- ✨ **Glassmorphism** – Frosted glass effects with backdrop blur
+- 🎯 **Material Symbols** – Google's Material Symbols Outlined icons
+- 📱 **Responsive Design** – Works on desktop, tablet, and mobile
+- 🌊 **Smooth Animations** – Hover effects and transitions
 
-![Search Interface](assets/web-search.png)
+**Functional Features:**
+- 📊 **Dashboard** – Overview of all memories with type breakdown and visual analytics
+- 🔍 **Semantic Search** – Real-time search with type and scope filters
+- 📚 **Browse Memories** – Filter by type, scope, and source with delete capabilities
+- 📂 **Index Files** – Index files or directories with project/global scope selection
+
+<table>
+  <tr>
+    <td><img src="assets/web-dashboard.png" alt="Dashboard" /></td>
+    <td><img src="assets/web-search.png" alt="Search" /></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Dashboard with memory analytics</em></td>
+    <td align="center"><em>Semantic search interface</em></td>
+  </tr>
+  <tr>
+    <td><img src="assets/web-memories.png" alt="Memories" /></td>
+    <td><img src="assets/web-index.png" alt="Index" /></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Memory browser with filters</em></td>
+    <td align="center"><em>File indexing interface</em></td>
+  </tr>
+</table>
 
 ### Interactive TUI
 
@@ -358,6 +384,26 @@ Version 0.9.3+ includes comprehensive security hardening:
 
 ---
 
+## 📝 Recent Updates
+
+### v0.9.4 (2026-01-19) - Dark Neon UI Redesign
+- **Complete visual overhaul** with modern dark neon design
+- **Glassmorphism effects** with backdrop-filter blur and mesh gradients
+- **Material Symbols icons** replaced emoji icons for professional look
+- **Neon color scheme** with cyan/indigo glow effects
+- **Bento card design** with rounded corners and smooth transitions
+- **Improved typography** using Inter font family
+- **Enhanced mobile responsiveness** with proper media queries
+
+### v0.9.3 (2026-01-18) - Security Hardening
+- Comprehensive input validation and sanitization
+- Path traversal protection and symlink attack prevention
+- Automatic corruption backups before database resets
+- SHA256 hashing instead of MD5
+- Localhost-only binding by default
+
+---
+
 ## 🗺️ Roadmap
 
 - [x] CLI interface
@@ -368,6 +414,7 @@ Version 0.9.3+ includes comprehensive security hardening:
 - [x] Export to multi-agent formats (AGENTS.md, CLAUDE.md, etc.)
 - [x] Comprehensive security hardening
 - [x] Automatic corruption recovery with backups
+- [x] Modern dark neon UI with glassmorphism
 - [ ] PyPI package
 - [ ] Docker image
 - [ ] Vim/Neovim plugin
