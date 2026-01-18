@@ -24,6 +24,12 @@ from session_parser import parse_recent_sessions, get_all_sessions
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
 CHROMA_PATH = os.environ.get("CHROMA_PATH", os.path.expanduser("~/.local/share/claude-memory"))
+PROJECT_PATH = os.environ.get("PROJECT_PATH", os.getcwd())
+
+# Scopes
+SCOPE_GLOBAL = "global"
+SCOPE_PROJECT = "project"
+SCOPE_ALL = "all"
 
 # Supported file extensions
 SUPPORTED_EXTENSIONS = {
@@ -43,22 +49,48 @@ SUPPORTED_EXTENSIONS = {
 # Initialize server
 server = Server("claude-rag")
 
-# ChromaDB client (lazy init)
-_client = None
-_collection = None
+# ChromaDB clients (lazy init)
+_clients = {}  # scope -> client
+_collections = {}  # scope -> collection
 
 
-def get_collection():
-    """Get or create ChromaDB collection"""
-    global _client, _collection
-    if _collection is None:
-        os.makedirs(CHROMA_PATH, exist_ok=True)
-        _client = chromadb.PersistentClient(path=CHROMA_PATH)
-        _collection = _client.get_or_create_collection(
-            name="claude_memory",
+def get_project_id() -> str:
+    """Generate a unique project ID from the project path"""
+    return hashlib.md5(PROJECT_PATH.encode()).hexdigest()[:12]
+
+
+def get_db_path(scope: str) -> str:
+    """Get database path for a scope"""
+    if scope == SCOPE_GLOBAL:
+        return os.path.join(CHROMA_PATH, "global")
+    else:
+        project_id = get_project_id()
+        return os.path.join(CHROMA_PATH, "projects", project_id)
+
+
+def get_collection(scope: str = SCOPE_PROJECT):
+    """Get or create ChromaDB collection for a scope"""
+    global _clients, _collections
+
+    if scope not in _collections:
+        db_path = get_db_path(scope)
+        os.makedirs(db_path, exist_ok=True)
+        _clients[scope] = chromadb.PersistentClient(path=db_path)
+        _collections[scope] = _clients[scope].get_or_create_collection(
+            name="memories",
             metadata={"hnsw:space": "cosine"}
         )
-    return _collection
+    return _collections[scope]
+
+
+def get_collections_for_scope(scope: str) -> list:
+    """Get list of collections to query based on scope"""
+    if scope == SCOPE_ALL:
+        return [get_collection(SCOPE_PROJECT), get_collection(SCOPE_GLOBAL)]
+    elif scope == SCOPE_GLOBAL:
+        return [get_collection(SCOPE_GLOBAL)]
+    else:
+        return [get_collection(SCOPE_PROJECT)]
 
 
 def get_embedding(text: str) -> list:
@@ -237,6 +269,12 @@ async def list_tools():
                         "type": "string",
                         "description": "Filter by memory type: context, decision, bugfix, architecture, preference, snippet",
                         "enum": ["context", "decision", "bugfix", "architecture", "preference", "snippet"]
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope: 'project' (current project), 'global' (system-wide), 'all' (both, default)",
+                        "enum": ["project", "global", "all"],
+                        "default": "all"
                     }
                 },
                 "required": ["query"]
@@ -251,6 +289,12 @@ async def list_tools():
                     "path": {
                         "type": "string",
                         "description": "Path to file or directory to index (supports ~ expansion)"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope: 'project' (default) or 'global' (system-wide knowledge)",
+                        "enum": ["project", "global"],
+                        "default": "project"
                     }
                 },
                 "required": ["path"]
@@ -276,6 +320,12 @@ async def list_tools():
                         "type": "array",
                         "items": {"type": "string"},
                         "description": "Optional tags for categorization"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope: 'project' (default) or 'global' (system-wide knowledge)",
+                        "enum": ["project", "global"],
+                        "default": "project"
                     }
                 },
                 "required": ["content"]
@@ -286,7 +336,14 @@ async def list_tools():
             description="Get RAG memory statistics - total chunks indexed and database path.",
             inputSchema={
                 "type": "object",
-                "properties": {}
+                "properties": {
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope: 'project', 'global', or 'all' (default)",
+                        "enum": ["project", "global", "all"],
+                        "default": "all"
+                    }
+                }
             }
         ),
         Tool(
@@ -315,6 +372,12 @@ async def list_tools():
                         "type": "boolean",
                         "description": "Must be true to actually delete. If false, just shows what would be deleted.",
                         "default": False
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope: 'project' (default) or 'global'",
+                        "enum": ["project", "global"],
+                        "default": "project"
                     }
                 }
             }
@@ -338,6 +401,12 @@ async def list_tools():
                         "type": "integer",
                         "description": "Maximum number of results (default: 20)",
                         "default": 20
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope: 'project', 'global', or 'all' (default)",
+                        "enum": ["project", "global", "all"],
+                        "default": "all"
                     }
                 }
             }
@@ -362,6 +431,12 @@ async def list_tools():
                         "type": "boolean",
                         "description": "If true, show what would be captured without storing (default: false)",
                         "default": False
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Memory scope: 'project' (default) or 'global'",
+                        "enum": ["project", "global"],
+                        "default": "project"
                     }
                 }
             }
@@ -377,13 +452,13 @@ async def call_tool(name: str, arguments: dict):
         query = arguments.get("query", "")
         n_results = arguments.get("n_results", 3)
         memory_type = arguments.get("memory_type")
+        scope = arguments.get("scope", SCOPE_ALL)
 
         if not query:
             return [TextContent(type="text", text="Error: query is required")]
 
         try:
             start = time.time()
-            collection = get_collection()
             query_embedding = get_embedding(query)
 
             # Build where filter if memory_type specified
@@ -391,36 +466,50 @@ async def call_tool(name: str, arguments: dict):
             if memory_type:
                 where_filter = {"memory_type": memory_type}
 
-            results = collection.query(
-                query_embeddings=[query_embedding],
-                n_results=n_results * 2 if memory_type else n_results,  # Fetch more if filtering
-                where=where_filter
-            )
+            # Collect results from all relevant collections
+            all_results = []
+            collections = get_collections_for_scope(scope)
 
-            if not results["documents"][0]:
+            for coll in collections:
+                try:
+                    results = coll.query(
+                        query_embeddings=[query_embedding],
+                        n_results=n_results * 2,
+                        where=where_filter
+                    )
+                    if results["documents"][0]:
+                        coll_scope = "project" if "project" in coll._client._persist_directory else "global"
+                        for doc, meta, dist in zip(
+                            results["documents"][0],
+                            results["metadatas"][0],
+                            results["distances"][0]
+                        ):
+                            meta["_scope"] = coll_scope
+                            all_results.append((doc, meta, dist))
+                except Exception:
+                    continue
+
+            if not all_results:
                 filter_msg = f" (type: {memory_type})" if memory_type else ""
                 return [TextContent(type="text", text=f"No results found{filter_msg}.")]
 
-            output = f"Search completed in {time.time()-start:.2f}s"
+            # Sort by distance (lower is better)
+            all_results.sort(key=lambda x: x[2])
+
+            output = f"Search completed in {time.time()-start:.2f}s (scope: {scope})"
             if memory_type:
-                output += f" (filtered: {memory_type})"
+                output += f" (type: {memory_type})"
             output += "\n\n"
 
-            shown = 0
-            for i, (doc, meta, dist) in enumerate(zip(
-                results["documents"][0],
-                results["metadatas"][0],
-                results["distances"][0]
-            ), 1):
-                if shown >= n_results:
-                    break
+            for i, (doc, meta, dist) in enumerate(all_results[:n_results]):
                 score = 1 - dist
                 source = meta.get("source", "unknown")
                 mem_type = meta.get("memory_type", "")
+                mem_scope = meta.get("_scope", "")
                 type_str = f" [{mem_type}]" if mem_type else ""
-                output += f"[{shown+1}] Score: {score:.3f}{type_str} | Source: {source}\n"
+                scope_str = f" 🌐" if mem_scope == "global" else " 📁"
+                output += f"[{i+1}]{scope_str} Score: {score:.3f}{type_str} | Source: {source}\n"
                 output += f"    {doc[:300]}...\n\n"
-                shown += 1
 
             return [TextContent(type="text", text=output)]
 
@@ -431,6 +520,8 @@ async def call_tool(name: str, arguments: dict):
 
     elif name == "rag_index":
         path_str = arguments.get("path", "")
+        scope = arguments.get("scope", SCOPE_PROJECT)
+
         if not path_str:
             return [TextContent(type="text", text="Error: path is required")]
 
@@ -440,7 +531,7 @@ async def call_tool(name: str, arguments: dict):
                 return [TextContent(type="text", text=f"Error: Path not found: {path}")]
 
             start = time.time()
-            collection = get_collection()
+            collection = get_collection(scope)
             total_chunks = 0
             indexed_files = []
 
@@ -492,9 +583,10 @@ async def call_tool(name: str, arguments: dict):
             if len(indexed_files) > 10:
                 files_list += f"\n  ... and {len(indexed_files) - 10} more"
 
+            scope_icon = "🌐" if scope == SCOPE_GLOBAL else "📁"
             return [TextContent(
                 type="text",
-                text=f"Indexed {len(indexed_files)} file(s): {total_chunks} chunks in {elapsed:.2f}s\n\n{files_list}"
+                text=f"{scope_icon} Indexed {len(indexed_files)} file(s) to {scope}: {total_chunks} chunks in {elapsed:.2f}s\n\n{files_list}"
             )]
 
         except requests.exceptions.ConnectionError:
@@ -506,12 +598,13 @@ async def call_tool(name: str, arguments: dict):
         content = arguments.get("content", "")
         memory_type = arguments.get("memory_type", "context")
         tags = arguments.get("tags", [])
+        scope = arguments.get("scope", SCOPE_PROJECT)
 
         if not content:
             return [TextContent(type="text", text="Error: content is required")]
 
         try:
-            collection = get_collection()
+            collection = get_collection(scope)
 
             # Generate unique ID
             doc_id = hashlib.md5(f"{content}{time.time()}".encode()).hexdigest()[:12]
@@ -531,9 +624,10 @@ async def call_tool(name: str, arguments: dict):
                 metadatas=[metadata]
             )
 
+            scope_icon = "🌐" if scope == SCOPE_GLOBAL else "📁"
             return [TextContent(
                 type="text",
-                text=f"Stored memory [{memory_type}] with ID: {doc_id}"
+                text=f"{scope_icon} Stored memory [{memory_type}] to {scope} with ID: {doc_id}"
             )]
 
         except requests.exceptions.ConnectionError:
@@ -542,26 +636,43 @@ async def call_tool(name: str, arguments: dict):
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     elif name == "rag_stats":
+        scope = arguments.get("scope", SCOPE_ALL)
         try:
-            collection = get_collection()
-            count = collection.count()
+            output = "📊 RAG Statistics\n\n"
+            total_count = 0
+            all_types = {}
+            all_sources = set()
 
-            # Get some metadata stats
-            all_meta = collection.get(include=["metadatas"])
-            types = {}
-            sources = set()
+            scopes_to_check = [SCOPE_PROJECT, SCOPE_GLOBAL] if scope == SCOPE_ALL else [scope]
 
-            for meta in all_meta.get("metadatas", []):
-                mem_type = meta.get("memory_type", meta.get("file_type", "unknown"))
-                types[mem_type] = types.get(mem_type, 0) + 1
-                sources.add(meta.get("source", "unknown"))
+            for s in scopes_to_check:
+                try:
+                    coll = get_collection(s)
+                    count = coll.count()
+                    total_count += count
 
-            types_str = "\n".join(f"  - {t}: {c}" for t, c in sorted(types.items()))
+                    scope_icon = "🌐" if s == SCOPE_GLOBAL else "📁"
+                    output += f"{scope_icon} **{s.capitalize()}**: {count} chunks\n"
 
-            return [TextContent(
-                type="text",
-                text=f"RAG Statistics:\n- Total chunks: {count}\n- Unique sources: {len(sources)}\n- Types:\n{types_str}\n- Database: {CHROMA_PATH}"
-            )]
+                    if count > 0:
+                        all_meta = coll.get(include=["metadatas"])
+                        for meta in all_meta.get("metadatas", []):
+                            mem_type = meta.get("memory_type", meta.get("file_type", "unknown"))
+                            all_types[mem_type] = all_types.get(mem_type, 0) + 1
+                            all_sources.add(meta.get("source", "unknown"))
+                except Exception:
+                    output += f"  {s}: (not initialized)\n"
+
+            output += f"\n**Total**: {total_count} chunks\n"
+            output += f"**Unique sources**: {len(all_sources)}\n"
+            if all_types:
+                output += "**Types**:\n"
+                for t, c in sorted(all_types.items()):
+                    output += f"  - {t}: {c}\n"
+            output += f"\n**Project**: {PROJECT_PATH}\n"
+            output += f"**Database**: {CHROMA_PATH}"
+
+            return [TextContent(type="text", text=output)]
         except Exception as e:
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
@@ -572,13 +683,13 @@ async def call_tool(name: str, arguments: dict):
             if not health["ok"]:
                 return [TextContent(type="text", text=f"❌ RAG Health Check FAILED\n\nError: {health['error']}")]
 
-            # Check ChromaDB
-            collection = get_collection()
-            count = collection.count()
+            # Check ChromaDB for both scopes
+            project_count = get_collection(SCOPE_PROJECT).count()
+            global_count = get_collection(SCOPE_GLOBAL).count()
 
             return [TextContent(
                 type="text",
-                text=f"✅ RAG Health Check OK\n\n- Ollama: running\n- Model: {EMBED_MODEL}\n- Database: {CHROMA_PATH}\n- Chunks indexed: {count}"
+                text=f"✅ RAG Health Check OK\n\n- Ollama: running\n- Model: {EMBED_MODEL}\n- Project: {PROJECT_PATH}\n- 📁 Project memories: {project_count}\n- 🌐 Global memories: {global_count}\n- Database: {CHROMA_PATH}"
             )]
 
         except Exception as e:
@@ -588,18 +699,20 @@ async def call_tool(name: str, arguments: dict):
         query = arguments.get("query", "")
         memory_id = arguments.get("memory_id", "")
         confirm = arguments.get("confirm", False)
+        scope = arguments.get("scope", SCOPE_PROJECT)
 
         if not query and not memory_id:
             return [TextContent(type="text", text="Error: either 'query' or 'memory_id' is required")]
 
         try:
-            collection = get_collection()
+            collection = get_collection(scope)
 
             if memory_id:
                 # Delete by specific ID
                 try:
                     collection.delete(ids=[memory_id])
-                    return [TextContent(type="text", text=f"Deleted memory with ID: {memory_id}")]
+                    scope_icon = "🌐" if scope == SCOPE_GLOBAL else "📁"
+                    return [TextContent(type="text", text=f"{scope_icon} Deleted memory with ID: {memory_id}")]
                 except Exception:
                     return [TextContent(type="text", text=f"Memory ID not found: {memory_id}")]
 
@@ -640,25 +753,29 @@ async def call_tool(name: str, arguments: dict):
         memory_type = arguments.get("memory_type")
         source_filter = arguments.get("source", "")
         limit = arguments.get("limit", 20)
+        scope = arguments.get("scope", SCOPE_ALL)
 
         try:
-            collection = get_collection()
-
-            # Get all documents with metadata
-            all_data = collection.get(include=["documents", "metadatas"])
-
-            if not all_data["documents"]:
-                return [TextContent(type="text", text="No memories in database.")]
-
-            # Filter results
             filtered = []
-            for doc_id, doc, meta in zip(all_data["ids"], all_data["documents"], all_data["metadatas"]):
-                # Apply filters
-                if memory_type and meta.get("memory_type") != memory_type:
+            scopes_to_check = [SCOPE_PROJECT, SCOPE_GLOBAL] if scope == SCOPE_ALL else [scope]
+
+            for s in scopes_to_check:
+                try:
+                    coll = get_collection(s)
+                    all_data = coll.get(include=["documents", "metadatas"])
+
+                    if not all_data["documents"]:
+                        continue
+
+                    for doc_id, doc, meta in zip(all_data["ids"], all_data["documents"], all_data["metadatas"]):
+                        if memory_type and meta.get("memory_type") != memory_type:
+                            continue
+                        if source_filter and source_filter.lower() not in meta.get("source", "").lower():
+                            continue
+                        meta["_scope"] = s
+                        filtered.append((doc_id, doc, meta))
+                except Exception:
                     continue
-                if source_filter and source_filter.lower() not in meta.get("source", "").lower():
-                    continue
-                filtered.append((doc_id, doc, meta))
 
             if not filtered:
                 filter_msg = []
@@ -670,11 +787,9 @@ async def call_tool(name: str, arguments: dict):
 
             # Sort by indexed_at if available
             filtered.sort(key=lambda x: x[2].get("indexed_at", ""), reverse=True)
-
-            # Limit results
             filtered = filtered[:limit]
 
-            output = f"Listing {len(filtered)} memories"
+            output = f"Listing {len(filtered)} memories (scope: {scope})"
             if memory_type:
                 output += f" (type: {memory_type})"
             if source_filter:
@@ -684,9 +799,11 @@ async def call_tool(name: str, arguments: dict):
             for doc_id, doc, meta in filtered:
                 source = meta.get("source", "unknown")
                 mem_type = meta.get("memory_type", meta.get("file_type", ""))
-                indexed_at = meta.get("indexed_at", "")[:10]  # Just the date
+                mem_scope = meta.get("_scope", "")
+                indexed_at = meta.get("indexed_at", "")[:10]
                 type_str = f"[{mem_type}] " if mem_type else ""
-                output += f"• {type_str}{doc_id} | {source}"
+                scope_icon = "🌐" if mem_scope == "global" else "📁"
+                output += f"• {scope_icon} {type_str}{doc_id} | {source}"
                 if indexed_at:
                     output += f" | {indexed_at}"
                 output += f"\n  {doc[:80]}...\n\n"
@@ -700,9 +817,10 @@ async def call_tool(name: str, arguments: dict):
         max_sessions = arguments.get("max_sessions", 3)
         min_confidence = arguments.get("min_confidence", 0.7)
         dry_run = arguments.get("dry_run", False)
+        scope = arguments.get("scope", SCOPE_PROJECT)
 
         try:
-            collection = get_collection()
+            collection = get_collection(scope)
             captured = []
             skipped = 0
 

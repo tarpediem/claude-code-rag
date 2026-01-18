@@ -240,10 +240,11 @@ auto_capture:
 
 | Version | Milestone |
 |---------|-----------|
-| 0.1.0 | MCP server basique (actuel) |
+| 0.1.0 | MCP server basique |
 | 0.2.0 | Phase 2 - Multi-formats + chunking intelligent |
 | 0.3.0 | Phase 3 - Memory types |
 | 0.4.0 | Phase 4 - Auto-capture |
+| 0.4.1 | Dual-scope memory (project + global) |
 | 0.5.0 | Phase 5 - Export & sync |
 | 1.0.0 | Stable, testé, documenté, sur PyPI |
 
@@ -257,6 +258,7 @@ auto_capture:
 4. ~~**`rag_store` tool**~~ ✅
 5. ~~**README avec GIF**~~ ✅
 6. ~~**`rag_forget` tool**~~ ✅
+7. ~~**Dual-scope memory**~~ ✅ (project + global)
 7. ~~**`rag_list` tool**~~ ✅
 8. ~~**Filtrage search**~~ ✅
 9. ~~**`rag_capture` tool**~~ ✅ — Auto-capture sessions

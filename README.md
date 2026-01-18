@@ -24,6 +24,7 @@ Claude Code forgets everything between sessions. Your `CLAUDE.md` file grows, bu
 - **Smart chunking** - Splits markdown by headers, Python by functions, JS by exports
 - **Multi-format** - `.md`, `.txt`, `.py`, `.js`, `.ts`, `.json`, `.yaml`, `.sh`, `.toml`
 - **Memory types** - Tag memories as `decision`, `bugfix`, `architecture`, `snippet`...
+- **Dual-scope memory** - 📁 Project-specific + 🌐 Global (system-wide) memories
 - **MCP integration** - Native Claude Code tools, no bash needed
 - **Fast** - ~30ms search, ~1s/file indexing on AMD iGPU
 
@@ -128,6 +129,31 @@ Claude, capture memories from my recent sessions
 ```bash
 python claude_rag.py stats
 # Or via MCP: rag_health
+```
+
+## Memory Scopes
+
+claude-code-rag supports two memory scopes:
+
+| Scope | Icon | Description |
+|-------|------|-------------|
+| `project` | 📁 | Project-specific memories (default for store/index) |
+| `global` | 🌐 | System-wide knowledge (your machine, preferences) |
+| `all` | | Both scopes (default for search/list) |
+
+**Examples:**
+```
+# Store system info globally
+→ rag_store(content="AMD 890M iGPU with ROCm", scope="global")
+
+# Index project docs locally
+→ rag_index(path="./docs", scope="project")
+
+# Search everywhere (default)
+→ rag_search(query="GPU config")
+
+# Search only global
+→ rag_search(query="GPU config", scope="global")
 ```
 
 ## Supported File Types
