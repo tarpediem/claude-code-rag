@@ -1,254 +1,429 @@
-# Claude Code RAG
+# 🧠 Claude Code RAG
 
-> **Give Claude Code a persistent memory** - Local semantic search powered by Ollama + ChromaDB
+> **Give Claude Code a persistent memory** – Local semantic search powered by Ollama + ChromaDB
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-![Demo](assets/demo.gif)
+![Dashboard](assets/web-dashboard.png)
 
-## Why?
+## ✨ Features
 
-Claude Code forgets everything between sessions. Your `CLAUDE.md` file grows, but searching it sucks.
+### 🎯 Core Capabilities
+- **Semantic Search** – Find relevant context by meaning, not keywords
+- **Smart Chunking** – Intelligently splits markdown by headers, Python by functions, JS by exports
+- **Multi-Format Support** – `.md`, `.py`, `.js`, `.ts`, `.json`, `.yaml`, `.sh`, `.toml` and more
+- **Memory Types** – Tag memories as `decision`, `bugfix`, `architecture`, `snippet`, `preference`
+- **Dual-Scope** – 📁 Project-specific + 🌐 Global (system-wide) memories
+- **100% Local** – No cloud, no API keys, complete privacy
 
-**claude-code-rag** gives Claude Code a semantic memory:
-- Index your docs, configs, and code
-- Search by meaning, not keywords
-- Remember decisions, bugfixes, and architecture choices
-- 100% local - no cloud, no API keys
+### 🛠️ Interfaces
+- **🔌 MCP Integration** – Native Claude Code tools (13 tools available)
+- **🌐 Web Dashboard** – Beautiful Apple-inspired UI for browsing memories
+- **💻 CLI** – Fast command-line interface for power users
+- **📟 TUI** – Interactive terminal UI with real-time search
 
-## Features
+### ⚡ Performance
+Tested on AMD Radeon 890M (iGPU) with ROCm:
+- **Search**: ~30ms per query
+- **Indexing**: ~1s per file
+- **Embeddings**: ~100 tokens/s
 
-- **Semantic search** - Find relevant context even with different wording
-- **Smart chunking** - Splits markdown by headers, Python by functions, JS by exports
-- **Multi-format** - `.md`, `.txt`, `.py`, `.js`, `.ts`, `.json`, `.yaml`, `.sh`, `.toml`
-- **Memory types** - Tag memories as `decision`, `bugfix`, `architecture`, `snippet`...
-- **Dual-scope memory** - 📁 Project-specific + 🌐 Global (system-wide) memories
-- **MCP integration** - Native Claude Code tools, no bash needed
-- **Fast** - ~30ms search, ~1s/file indexing on AMD iGPU
+---
 
-## Quick Start
+## 📦 Installation
+
+### Prerequisites
+- Python 3.10+
+- [Ollama](https://ollama.ai) installed and running
+- [uv](https://github.com/astral-sh/uv) (recommended) or pip
+
+### Quick Start
 
 ```bash
-# 1. Clone
+# 1. Clone the repository
 git clone https://github.com/tarpediem/claude-code-rag.git
 cd claude-code-rag
 
-# 2. Install
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+# 2. Install dependencies (with uv)
+uv sync
 
-# 3. Pull embedding model
+# Or with pip
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -e .
+
+# 3. Pull the embedding model
 ollama pull nomic-embed-text
 
-# 4. Test it
-python claude_rag.py index ~/CLAUDE.md
-python claude_rag.py search "how to configure GPU"
+# 4. Initialize and test
+claude-rag init
+claude-rag index ~/your-docs/
+claude-rag search "how to configure something"
 ```
 
-## MCP Integration (Recommended)
+---
 
-Add to `~/.claude.json` under your project:
+## 🚀 Usage
+
+### Command Line Interface
+
+#### Index files or directories
+```bash
+# Single file
+claude-rag index ~/CLAUDE.md
+
+# Entire directory (recursively indexes all supported formats)
+claude-rag index ~/myproject/docs/
+
+# Index to global scope (system-wide knowledge)
+claude-rag index ~/machine-specs.md --scope global
+```
+
+#### Search memories
+```bash
+# Basic search (searches both project and global)
+claude-rag search "database optimization"
+
+# Filter by memory type
+claude-rag search "bug fixes" --type bugfix
+
+# Search only global memories
+claude-rag search "GPU config" --scope global
+```
+
+#### View statistics
+```bash
+claude-rag stats
+```
+
+Output:
+```
+📊 RAG Statistics
+
+📁 Project: 42 chunks
+🌐 Global: 18 chunks
+Total: 60 chunks
+
+Types:
+  - context: 35
+  - decision: 12
+  - bugfix: 8
+  - architecture: 5
+```
+
+### Web Dashboard
+
+Launch the modern web interface:
+
+```bash
+claude-rag web
+# Opens at http://localhost:8420
+```
+
+Features:
+- 📊 **Dashboard** – Overview of all memories with type breakdown
+- 🔍 **Semantic Search** – Real-time search with filters
+- 📚 **Browse Memories** – Filter by type, scope, and source
+- 📂 **Index Files** – Drag-and-drop file indexing
+
+![Search Interface](assets/web-search.png)
+
+### Interactive TUI
+
+```bash
+claude-rag ui
+```
+
+Navigate with keyboard:
+- `Tab` – Switch between search/results
+- `↑/↓` – Navigate results
+- `/` – Focus search
+- `q` – Quit
+
+---
+
+## 🔌 MCP Integration (Recommended)
+
+Add to your `~/.claude.json` (or project-specific `.claude.json`):
 
 ```json
 {
   "mcpServers": {
     "claude-rag": {
-      "command": "/path/to/venv/bin/python",
-      "args": ["/path/to/mcp_server.py"]
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/absolute/path/to/claude-code-rag",
+        "run",
+        "python",
+        "mcp_server.py"
+      ]
     }
   }
 }
 ```
 
-Restart Claude Code. You now have 13 native tools:
+Restart Claude Code. You'll now have **13 native tools**:
 
 | Tool | Description |
 |------|-------------|
-| `rag_search` | Semantic search in memory (with optional type filter) |
-| `rag_index` | Index files or directories |
-| `rag_store` | Manually store a memory with type/tags |
-| `rag_sync` | Sync watched files (detects changes, reindexes only if modified) |
-| `rag_capture` | Auto-capture from Claude Code sessions |
-| `rag_export` | Export memories to AGENTS.md/CLAUDE.md/GEMINI.md etc. |
+| `rag_search` | Semantic search with optional type/scope filters |
+| `rag_index` | Index files or directories into memory |
+| `rag_store` | Manually store a memory with tags |
+| `rag_sync` | Sync watched files (auto-detects changes) |
 | `rag_list` | List memories with filtering |
 | `rag_forget` | Delete memories by query or ID |
-| `rag_backup` | Export all memories to JSON backup |
-| `rag_restore` | Restore memories from JSON backup |
-| `rag_reset` | Clear entire database (with confirmation) |
 | `rag_stats` | Show memory statistics |
 | `rag_health` | Check Ollama/ChromaDB status |
+| `rag_capture` | Auto-capture from Claude Code sessions |
+| `rag_export` | Export to AGENTS.md/CLAUDE.md/GEMINI.md |
+| `rag_backup` | Export all memories to JSON |
+| `rag_restore` | Restore memories from JSON backup |
+| `rag_reset` | Clear entire database (with confirmation) |
 
-## Auto-RAG in CLAUDE.md (Recommended)
+### Auto-RAG Instructions
 
 Add this to your `CLAUDE.md` to make Claude **automatically** use the RAG:
 
 ```markdown
-## Local RAG (USE AUTOMATICALLY)
+## RAG Memory System
 
-A RAG system is available via MCP. **You MUST use it PROACTIVELY**:
+A local RAG system is available via MCP. **Use it proactively**:
 
-### When to use RAG:
-- **ALWAYS search first** → `rag_search` BEFORE asking the user anything
-- **Context on any topic** → RAG contains the history of everything we've done
-- **Problem/bug** → Check if we've already solved it before
-- **User preferences** → Past choices are stored in RAG
+### When to use:
+- **Search first** → Use `rag_search` before asking the user
+- **Check history** → Search for previously solved problems
+- **Store decisions** → Use `rag_store` for important choices
 
 ### Maintenance:
-- **Start of session** → `rag_sync` to synchronize this file
-- **After modifying this file** → `rag_sync` to update the index
-- **New important decision** → `rag_store` to save it
+- **Session start** → Run `rag_sync` to update index
+- **After changes** → Run `rag_sync` when CLAUDE.md is modified
 ```
 
-This tells Claude to:
-1. **Search the RAG first** before asking you anything
-2. **Check history** for previously solved problems
-3. **Sync** at the start of each session
-4. **Store** important decisions for future reference
+### Example MCP Usage
 
-## Usage Examples
-
-### Index your codebase
-```bash
-# Single file
-python claude_rag.py index ~/CLAUDE.md
-
-# Entire directory (all supported formats)
-python claude_rag.py index ~/myproject/
 ```
+User: How did we configure the GPU last time?
+Claude: Let me search the RAG...
+→ rag_search(query="GPU configuration", scope="global")
 
-### Search
-```bash
-python claude_rag.py search "database connection error"
-python claude_rag.py search "how to deploy"
+User: Store this decision for later
+Claude: I'll save that to your memory.
+→ rag_store(
+    content="Chose PostgreSQL over MongoDB for ACID compliance",
+    memory_type="decision",
+    tags=["database", "architecture"]
+  )
 ```
-
-### Store a decision (MCP)
-```
-Claude, store this: "We chose PostgreSQL over MongoDB for ACID compliance"
-→ rag_store(content="...", memory_type="decision", tags=["database"])
-```
-
-### List memories (MCP)
-```
-Claude, show me all my bugfix memories
-→ rag_list(memory_type="bugfix")
-```
-
-### Delete memories (MCP)
-```
-Claude, forget everything about the old auth system
-→ rag_forget(query="old auth system", confirm=true)
-```
-
-### Search with filter (MCP)
-```
-Claude, search my architecture decisions about caching
-→ rag_search(query="caching", memory_type="architecture")
-```
-
-### Auto-capture from sessions (MCP)
-```
-Claude, capture memories from my recent sessions
-→ rag_capture(max_sessions=5, min_confidence=0.7)
-
-# Preview first without storing:
-→ rag_capture(dry_run=true)
-```
-
-### Export to context file (MCP)
-```
-# Export to AGENTS.md (universal format - works with Codex, Gemini CLI, etc.)
-Claude, export my memories to an AGENTS.md
-→ rag_export(format="agents")
-
-# Export to CLAUDE.md specifically
-→ rag_export(format="claude", scope="project")
-
-# Export with symlinks for cross-agent compatibility
-→ rag_export(format="agents", create_symlinks=true)
-# Creates: AGENTS.md + symlinks (CLAUDE.md, GEMINI.md, CONVENTIONS.md)
-
-# Export only decisions and architecture choices
-→ rag_export(memory_types=["decision", "architecture"])
-```
-
-### Check health
-```bash
-python claude_rag.py stats
-# Or via MCP: rag_health
-```
-
-## Memory Scopes
-
-claude-code-rag supports two memory scopes:
-
-| Scope | Icon | Description |
-|-------|------|-------------|
-| `project` | 📁 | Project-specific memories (default for store/index) |
-| `global` | 🌐 | System-wide knowledge (your machine, preferences) |
-| `all` | | Both scopes (default for search/list) |
-
-**Examples:**
-```
-# Store system info globally
-→ rag_store(content="AMD 890M iGPU with ROCm", scope="global")
-
-# Index project docs locally
-→ rag_index(path="./docs", scope="project")
-
-# Search everywhere (default)
-→ rag_search(query="GPU config")
-
-# Search only global
-→ rag_search(query="GPU config", scope="global")
-```
-
-## Supported File Types
-
-| Extension | Chunking Strategy |
-|-----------|-------------------|
-| `.md` | Split by `##` headers |
-| `.py` | Split by `def`/`class` |
-| `.js`, `.ts` | Split by `function`/`const`/`export` |
-| `.json`, `.yaml`, `.toml` | Generic with overlap |
-| `.txt`, `.sh` | Generic with overlap |
-
-## Configuration
-
-| Env Variable | Default | Description |
-|--------------|---------|-------------|
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama server |
-| `EMBED_MODEL` | `nomic-embed-text` | Embedding model |
-| `CHROMA_PATH` | `~/.local/share/claude-memory` | Database path |
-
-## Performance
-
-Tested on AMD Radeon 890M (integrated GPU) with ROCm:
-
-| Operation | Speed |
-|-----------|-------|
-| Search | ~30ms |
-| Index | ~1s/file |
-| Embedding | ~100 tok/s |
-
-## Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for planned features:
-- [x] Auto-capture from Claude Code sessions
-- [x] Export to AGENTS.md/CLAUDE.md/GEMINI.md (multi-agent support)
-- [ ] Web UI dashboard
-- [ ] PyPI package
-
-## Contributing
-
-PRs welcome! Check the roadmap for ideas.
-
-## License
-
-MIT
 
 ---
 
-**Built for the [Claude Code](https://claude.ai/code) community**
+## 📚 Memory Types & Scopes
+
+### Memory Types
+
+| Type | Use Case | Example |
+|------|----------|---------|
+| `context` | General information, docs | README content, API docs |
+| `decision` | Technical decisions, rationale | "Chose React over Vue because..." |
+| `bugfix` | Bug fixes and solutions | "Fixed memory leak by..." |
+| `architecture` | System design, patterns | "Microservices architecture for..." |
+| `preference` | User/team preferences | "Always use async/await over callbacks" |
+| `snippet` | Code snippets, examples | Reusable functions, configs |
+
+### Scopes
+
+| Scope | Icon | Description | Storage |
+|-------|------|-------------|---------|
+| `project` | 📁 | Project-specific knowledge | `~/.local/share/claude-memory/<project-id>` |
+| `global` | 🌐 | System-wide knowledge | `~/.local/share/claude-memory/global` |
+| `all` | – | Search both (default) | Both locations |
+
+**Examples:**
+
+```bash
+# Store system information globally
+→ rag_store(
+    content="Machine: AMD Ryzen 9 with 96GB RAM, ROCm 7.1",
+    scope="global",
+    memory_type="context"
+  )
+
+# Index project docs locally
+claude-rag index ./docs --scope project
+
+# Search everywhere (default)
+claude-rag search "deployment process"
+```
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama server URL |
+| `EMBED_MODEL` | `nomic-embed-text` | Embedding model name |
+| `CHROMA_PATH` | `~/.local/share/claude-memory` | Database storage path |
+
+### Custom Configuration
+
+```bash
+# Use remote Ollama instance
+export OLLAMA_URL=http://192.168.1.100:11434
+claude-rag search "query"
+
+# Use different embedding model
+export EMBED_MODEL=all-minilm
+ollama pull all-minilm
+claude-rag search "query"
+
+# Custom storage location
+export CHROMA_PATH=~/my-custom-path
+claude-rag init
+```
+
+---
+
+## 🏗️ Architecture
+
+```
+claude-code-rag/
+├── claude_rag.py          # CLI entry point
+├── mcp_server.py          # MCP server for Claude Code
+├── web_ui.py              # Web dashboard (FastAPI + HTMX)
+├── rag_tui.py             # Terminal UI (Textual)
+├── session_parser.py      # Parse Claude Code sessions
+├── pyproject.toml         # Project config
+└── assets/                # Screenshots for README
+```
+
+### How It Works
+
+1. **Indexing**: Files are chunked intelligently based on format
+   - Markdown: Split by `##` headers
+   - Python: Split by `def`/`class`
+   - JavaScript/TypeScript: Split by `function`/`const`/`export`
+   - Generic: Fixed-size chunks with overlap
+
+2. **Embedding**: Text chunks are embedded using Ollama
+   - Model: `nomic-embed-text` (137M params, fast & accurate)
+   - Dimension: 768
+   - Cached for performance
+
+3. **Storage**: Embeddings stored in ChromaDB
+   - Separate collections for project/global scope
+   - Metadata: type, tags, source, timestamp
+   - Persistent on disk
+
+4. **Search**: Semantic search via cosine similarity
+   - Query → Embedding → Vector search
+   - Optional filters: type, scope, source
+   - Returns top N results with scores
+
+---
+
+## 🛡️ Security
+
+Version 0.9.3+ includes comprehensive security hardening:
+
+### Input Validation
+- Query length limits (10k chars)
+- Result count limits (100 max)
+- Content size limits (100MB)
+- Scope/type validation
+- Memory ID format validation
+
+### Path Security
+- Path traversal protection (`../` blocked)
+- Symlink attack prevention
+- Base path validation
+- Safe path resolution
+
+### Data Protection
+- Local-only (no external API calls)
+- No telemetry or tracking
+- Automatic corruption backups
+- SHA256 hashing (not MD5)
+
+### Network Security
+- Default bind: `127.0.0.1` (localhost only)
+- Warning for non-localhost Ollama on HTTP
+- No exposed ports by default
+
+---
+
+## 🗺️ Roadmap
+
+- [x] CLI interface
+- [x] MCP server integration
+- [x] TUI with Textual
+- [x] Web dashboard
+- [x] Auto-capture from sessions
+- [x] Export to multi-agent formats (AGENTS.md, CLAUDE.md, etc.)
+- [x] Comprehensive security hardening
+- [x] Automatic corruption recovery with backups
+- [ ] PyPI package
+- [ ] Docker image
+- [ ] Vim/Neovim plugin
+- [ ] VS Code extension
+- [ ] Obsidian plugin
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Clone and install in development mode
+git clone https://github.com/tarpediem/claude-code-rag.git
+cd claude-code-rag
+uv sync --dev
+
+# Run tests (when available)
+pytest
+
+# Format code
+black .
+```
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Ollama** – Local LLM inference
+- **ChromaDB** – Vector database
+- **Claude Code** – AI pair programming tool
+- **FastAPI + HTMX** – Modern web framework
+
+---
+
+## 📞 Support
+
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/tarpediem/claude-code-rag/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/tarpediem/claude-code-rag/discussions)
+- 📖 **Documentation**: [GitHub Wiki](https://github.com/tarpediem/claude-code-rag/wiki)
+
+---
+
+**Built with ❤️ for the [Claude Code](https://claude.ai/code) community**
