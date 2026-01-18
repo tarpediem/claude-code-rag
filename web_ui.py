@@ -220,25 +220,26 @@ def delete_memory(memory_id: str, scope: str = "project") -> bool:
 app = FastAPI(title="Claude Code RAG", description="Semantic Memory Dashboard")
 
 # HTML Templates inline (no external files needed)
+
 HTML_BASE = """
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Claude Code RAG - Neural Dashboard</title>
+<title>Claude RAG - $title</title>
 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
 <style>
 :root {
-    --neon-cyan: #00f2ff;
-    --neon-indigo: #6366f1;
-    --deep-bg: #030014;
-    --glass-dark: rgba(10, 10, 18, 0.45);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --primary: #6366f1;
+    --neon-cyan: #22d3ee;
+    --neon-violet: #8b5cf6;
+    --neon-rose: #f43f5e;
+    --bg-dark: #020617;
+    --glass-dark: rgba(23, 23, 33, 0.7);
+    --sidebar-bg: rgba(15, 23, 42, 0.6);
 }
 
 * {
@@ -248,73 +249,53 @@ HTML_BASE = """
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: var(--deep-bg);
-    color: #f1f5f9;
-    min-height: 100vh;
-}
-
-.mesh-gradient {
-    background-color: var(--deep-bg);
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
     background-image:
-        radial-gradient(at 0% 0%, hsla(270, 70%, 15%, 1) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, hsla(240, 70%, 10%, 1) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, hsla(260, 60%, 12%, 1) 0px, transparent 50%),
-        radial-gradient(at 0% 100%, hsla(280, 50%, 8%, 1) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, hsla(250, 60%, 5%, 1) 0px, transparent 50%);
-    background-attachment: fixed;
+        radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%),
+        radial-gradient(at 50% 0%, hsla(225,39%,30%,0.3) 0, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(250,100%,70%,0.15) 0, transparent 50%);
+    color: #e2e8f0;
     min-height: 100vh;
-}
-
-.glass-panel {
-    background: var(--glass-dark);
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.4);
-}
-
-.neon-border-indigo {
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    box-shadow: 0 0 10px rgba(99, 102, 241, 0.1), inset 0 0 1px rgba(99, 102, 241, 0.2);
-}
-
-.neon-border-cyan {
-    border: 1px solid rgba(0, 242, 255, 0.3);
-    box-shadow: 0 0 10px rgba(0, 242, 255, 0.1), inset 0 0 1px rgba(0, 242, 255, 0.2);
+    overflow-x: hidden;
 }
 
 .sidebar-blur {
-    background: rgba(10, 10, 18, 0.6);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--sidebar-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
-.material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+.glass-panel {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.neon-text-cyan {
-    color: var(--neon-cyan);
-    text-shadow: 0 0 8px rgba(0, 242, 255, 0.4);
+.glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.neon-text-indigo {
-    color: var(--neon-indigo);
-    text-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+.neon-glow {
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
 }
 
-.bento-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.neon-border-violet {
+    box-shadow: 0 0 15px -5px rgba(139, 92, 246, 0.5);
+    border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
-.bento-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+.neon-border-cyan {
+    box-shadow: 0 0 15px -5px rgba(34, 211, 238, 0.5);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+}
+
+.sidebar-active {
+    background: rgba(99, 102, 241, 0.15);
+    border-right: 2px solid var(--primary);
 }
 
 /* Layout */
@@ -324,60 +305,60 @@ body {
 }
 
 .sidebar {
-    width: 288px;
-    flex-shrink: 0;
-    position: fixed;
-    height: 100vh;
-    z-index: 50;
+    width: 16rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    z-index: 50;
 }
 
-.sidebar-logo {
-    padding: 2.5rem;
+.logo {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    padding: 2rem 1.5rem;
 }
 
 .logo-icon {
-    width: 40px;
-    height: 40px;
-    background: #4f46e5;
-    border-radius: 12px;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: var(--primary);
+    border-radius: 0.75rem;
     display: flex;
     align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
-    border: 1px solid rgba(99, 102, 241, 0.3);
+    justify-center;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .logo-text {
     font-size: 1.25rem;
     font-weight: 700;
-    letter-spacing: -0.025em;
     color: white;
+    letter-spacing: -0.025em;
 }
 
 .nav {
     flex: 1;
-    padding: 0 1.5rem;
+    padding: 0 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
     padding: 0.75rem 1rem;
-    border-radius: 12px;
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.2s;
+    border-radius: 0.75rem;
     color: #94a3b8;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    transition: all 0.2s;
 }
 
 .nav-item:hover {
@@ -386,492 +367,478 @@ body {
 }
 
 .nav-item.active {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(99, 102, 241, 0.15);
+    border-right: 2px solid var(--primary);
+    color: var(--primary);
 }
 
-.nav-item .material-symbols-outlined {
+.nav-icon {
     font-size: 20px;
 }
 
-.nav-item.active .material-symbols-outlined {
-    color: var(--neon-cyan);
+.memory-counter {
+    margin: 1.5rem 1rem;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.counter-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.counter-value {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+}
+
+.counter-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+}
+
+.counter-badge {
+    font-size: 0.625rem;
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    margin-bottom: 0.25rem;
 }
 
 .sidebar-footer {
-    padding: 2rem;
     display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.stat-mini {
-    background: rgba(99, 102, 241, 0.05);
-    padding: 1.25rem;
-    border-radius: 16px;
-}
-
-.stat-mini-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 0.5rem;
-}
-
-.stat-mini-value {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -0.05em;
-}
-
-.stat-mini-badge {
-    font-size: 10px;
-    font-weight: 700;
-    color: #10b981;
-    margin-left: 0.5rem;
-}
-
-.version-row {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0 0.5rem;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    margin-top: auto;
 }
 
 .version-text {
-    font-size: 10px;
+    font-size: 0.625rem;
     color: #64748b;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
+    font-weight: 500;
 }
 
-.help-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.05);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
+.help-icon {
+    color: #64748b;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: color 0.2s;
+    font-size: 16px;
 }
 
-.help-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+.help-icon:hover {
+    color: #94a3b8;
 }
 
 .main-content {
     flex: 1;
-    margin-left: 288px;
-    padding: 2.5rem 4rem;
+    position: relative;
+    overflow-y: auto;
 }
 
+/* Typography */
 .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4rem;
+    padding: 3rem 3rem 0;
 }
 
 .page-title {
-    font-size: 3rem;
-    font-weight: 900;
-    letter-spacing: -0.05em;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-title-icon {
+    font-size: 2rem;
+}
+
+.page-title-text {
+    font-size: 2.5rem;
+    font-weight: 700;
     color: white;
-    margin-bottom: 0.75rem;
+    letter-spacing: -0.025em;
 }
 
 .page-subtitle {
-    font-size: 1.125rem;
-    font-weight: 500;
     color: #94a3b8;
+    font-weight: 500;
 }
 
-.header-actions {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
+/* Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.625rem;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-context {
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--neon-cyan);
+}
+
+.badge-architecture {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--neon-violet);
+}
+
+.badge-preference {
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--neon-cyan);
+}
+
+.badge-bugfix {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+}
+
+.badge-decision {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+}
+
+.badge-snippet {
+    background: rgba(236, 72, 153, 0.1);
+    color: #ec4899;
+}
+
+.badge-global {
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--neon-cyan);
+}
+
+.badge-project {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--neon-violet);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
     border: none;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.btn-primary:hover {
+    background: #5558e3;
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Pills/Filters */
+.pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.pill {
+    padding: 0.375rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+}
+
+.pill-active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.pill-inactive {
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pill-inactive:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    color: var(--primary);
+}
+
+/* Cards */
+.card {
+    background: var(--glass-dark);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.card-header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.card-badges {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
-.btn-secondary {
-    background: var(--glass-dark);
+.card-content {
     color: #cbd5e1;
-    border: 1px solid var(--glass-border);
+    line-height: 1.6;
+    font-weight: 500;
 }
 
-.btn-secondary:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.btn-primary {
-    background: #4f46e5;
-    color: white;
-    box-shadow: 0 0 25px rgba(79, 70, 229, 0.3);
-    border: 1px solid rgba(99, 102, 241, 0.4);
-}
-
-.btn-primary:hover {
-    background: #4338ca;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-    margin-bottom: 3rem;
-}
-
-.stat-card {
-    padding: 2rem;
-    border-radius: 40px;
-}
-
-.stat-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 2rem;
-}
-
-.stat-card-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-}
-
-.stat-card-icon {
-    font-size: 24px;
-}
-
-.stat-card-value {
-    font-size: 3.75rem;
-    font-weight: 900;
-    letter-spacing: -0.05em;
-}
-
-.stat-card-badge {
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-    padding: 0.25rem 0.5rem;
-    border-radius: 8px;
-    margin-left: 0.75rem;
-}
-
-.stat-card-meta {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #64748b;
-    letter-spacing: 0.1em;
-}
-
-.content-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 2.5rem;
-}
-
-.distribution-card {
-    padding: 3rem;
-    border-radius: 40px;
-}
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 3rem;
-}
-
-.card-title {
-    font-size: 1.875rem;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    color: white;
-}
-
-.card-action {
-    font-size: 0.875rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    text-decoration: none;
-    transition: filter 0.2s;
-}
-
-.card-action:hover {
-    filter: brightness(1.25);
-}
-
-.progress-list {
-    display: flex;
-    flex-direction: column;
-    gap: 3rem;
-}
-
-.progress-item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.25rem;
-}
-
-.progress-label {
+.card-footer {
     display: flex;
     align-items: center;
     gap: 1rem;
-}
-
-.progress-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-}
-
-.progress-label-text {
-    font-weight: 700;
-    color: #cbd5e1;
-}
-
-.progress-value {
-    font-size: 0.875rem;
-    font-weight: 900;
-    color: white;
-}
-
-.progress-bar-container {
-    height: 12px;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 9999px;
-    overflow: hidden;
-    padding: 2px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.progress-bar-fill {
-    height: 100%;
-    border-radius: 9999px;
-}
-
-.side-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
-}
-
-.activity-card {
-    padding: 2.5rem;
-    border-radius: 40px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.activity-title {
-    font-size: 1.25rem;
-    font-weight: 900;
-    letter-spacing: -0.025em;
-    color: white;
-    margin-bottom: 2rem;
-}
-
-.activity-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
-
-.activity-item {
-    display: flex;
-    gap: 1.25rem;
-}
-
-.activity-icon-wrapper {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.activity-text {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: white;
-}
-
-.activity-time {
-    font-size: 11px;
-    font-weight: 700;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.6875rem;
     color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-top: 0.25rem;
+    font-weight: 500;
 }
 
-.health-card {
-    padding: 2.5rem;
-    border-radius: 40px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.health-glow {
-    position: absolute;
-    top: -3rem;
-    right: -3rem;
-    width: 6rem;
-    height: 6rem;
-    background: rgba(0, 242, 255, 0.1);
-    filter: blur(3rem);
-    transition: background 0.3s;
-}
-
-.health-card:hover .health-glow {
-    background: rgba(0, 242, 255, 0.2);
-}
-
-.health-icon-wrapper {
-    width: 80px;
-    height: 80px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 2rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05);
-}
-
-.health-icon {
-    font-size: 48px;
-}
-
-.health-title {
-    font-size: 1.25rem;
-    font-weight: 900;
-    letter-spacing: -0.025em;
-    color: white;
-    margin-bottom: 1rem;
-}
-
-.health-description {
+.delete-btn {
+    opacity: 0;
+    background: rgba(244, 63, 94, 0.1);
+    color: var(--neon-rose);
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
     font-size: 0.75rem;
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.card:hover .delete-btn {
+    opacity: 1;
+}
+
+.delete-btn:hover {
+    background: rgba(244, 63, 94, 0.2);
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
     color: #94a3b8;
-    line-height: 1.75;
-    padding: 0 0.5rem;
+    margin-bottom: 0.75rem;
+    margin-left: 0.25rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
-.health-highlight {
-    font-weight: 900;
+.form-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    font-family: 'Inter', monospace;
+    font-size: 0.875rem;
+    color: white;
+    transition: all 0.3s;
 }
 
-@media (max-width: 1280px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .content-grid {
-        grid-template-columns: 1fr;
-    }
+.form-input:focus {
+    outline: none;
+    border-color: rgba(34, 211, 238, 0.5);
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
 }
 
+.form-input::placeholder {
+    color: #64748b;
+}
+
+.radio-group {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.radio-input {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.radio-input:checked {
+    border-width: 6px;
+    border-color: var(--primary);
+}
+
+.radio-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
+/* Dashboard specific */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 3rem;
+}
+
+.stat-card {
+    background: var(--glass-dark);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.stat-value {
+    font-size: 3rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+}
+
+.stat-sub {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    margin-top: 0.5rem;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
     .sidebar {
-        transform: translateX(-100%);
+        width: 4rem;
     }
-    .main-content {
-        margin-left: 0;
-        padding: 1.5rem;
-    }
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    .page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1.5rem;
+
+    .logo-text, .nav-item span:not(.material-icons-round), .memory-counter, .sidebar-footer {
+        display: none;
     }
 }
 </style>
 </head>
-<body class="mesh-gradient">
+<body>
 <div class="app-container">
     <aside class="sidebar sidebar-blur">
-        <div class="sidebar-logo">
+        <div class="logo">
             <div class="logo-icon">
-                <span class="material-symbols-outlined" style="color: white; font-size: 24px;">psychology</span>
+                <span class="material-icons-round" style="color: white;">psychology</span>
             </div>
             <span class="logo-text">Claude RAG</span>
         </div>
+
         <nav class="nav">
-            <a class="nav-item $active_home" href="/">
-                <span class="material-symbols-outlined">dashboard</span>
+            <a href="/" class="nav-item $active_dashboard">
+                <span class="material-icons-round nav-icon">dashboard</span>
                 <span>Dashboard</span>
             </a>
-            <a class="nav-item $active_search" href="/search">
-                <span class="material-symbols-outlined">search</span>
+            <a href="/search" class="nav-item $active_search">
+                <span class="material-icons-round nav-icon">search</span>
                 <span>Semantic Search</span>
             </a>
-            <a class="nav-item $active_memories" href="/memories">
-                <span class="material-symbols-outlined">auto_stories</span>
+            <a href="/memories" class="nav-item $active_memories">
+                <span class="material-icons-round nav-icon">inventory_2</span>
                 <span>Memory Browser</span>
             </a>
-            <a class="nav-item $active_index" href="/index">
-                <span class="material-symbols-outlined">upload_file</span>
+            <a href="/index" class="nav-item $active_index">
+                <span class="material-icons-round nav-icon">upload_file</span>
                 <span>Index Files</span>
             </a>
         </nav>
+
+        <div class="memory-counter glass-panel">
+            <p class="counter-label">Memory Count</p>
+            <div class="counter-value">
+                <span class="counter-number">$total_count</span>
+                <span class="counter-badge">Active</span>
+            </div>
+        </div>
+
         <div class="sidebar-footer">
-            <div class="stat-mini neon-border-indigo">
-                <div class="stat-mini-label">Memory Count</div>
-                <div>
-                    <span class="stat-mini-value neon-text-indigo">$total_count</span>
-                    <span class="stat-mini-badge">ACTIVE</span>
-                </div>
-            </div>
-            <div class="version-row">
-                <span class="version-text">Version 0.9.4</span>
-                <button class="help-btn">
-                    <span class="material-symbols-outlined" style="font-size: 14px; color: #94a3b8;">help</span>
-                </button>
-            </div>
+            <span class="version-text">VERSION 0.9.4</span>
+            <span class="material-icons-round help-icon">help_outline</span>
         </div>
     </aside>
 
     <main class="main-content">
-$content
-</main>
+        $content
+    </main>
 </div>
 </body>
 </html>
-
 """
 
 
@@ -893,44 +860,65 @@ def render_page(content: str, active: str = "", stats: dict = None) -> str:
 
 def render_memory_card(memory: dict, show_delete: bool = True) -> str:
     """Render a single memory card"""
-    type_icons = {
-        "decision": "🎯",
-        "bugfix": "🐛",
-        "architecture": "🏗️",
-        "preference": "⚙️",
-        "snippet": "📝",
-        "context": "📄",
-        "markdown": "📑",
-        "python": "🐍",
-        "text": "📃",
+    # Type badge mapping
+    type_badges = {
+        "context": ("description", "badge-context"),
+        "architecture": ("account_tree", "badge-architecture"),
+        "decision": ("flag", "badge-decision"),
+        "bugfix": ("bug_report", "badge-bugfix"),
+        "preference": ("settings", "badge-preference"),
+        "snippet": ("code", "badge-snippet"),
     }
-    icon = type_icons.get(memory["type"], "💭")
-    content = memory["content"][:500] + "..." if len(memory["content"]) > 500 else memory["content"]
-    score_badge = f'<span class="badge badge-score">Score: {memory.get("score", 0):.2f}</span>' if "score" in memory else ""
+    type_icon, type_class = type_badges.get(memory["type"], ("folder", "badge-context"))
 
+    # Scope badge
+    if memory["scope"] == "project":
+        scope_icon = "folder_open"
+        scope_class = "badge-project"
+    else:
+        scope_icon = "public"
+        scope_class = "badge-global"
+
+    # Content preview
+    content = memory["content"][:400] + "..." if len(memory["content"]) > 400 else memory["content"]
+
+    # Score badge
+    score_badge = f'<span class="badge badge-decision" style="background: rgba(34, 211, 238, 0.1); color: var(--neon-cyan);">Score: {memory.get("score", 0):.2f}</span>' if "score" in memory else ""
+
+    # Delete button
     delete_btn = f'''
-        <button class="btn btn-danger"
+        <button class="delete-btn"
                 hx-delete="/api/memories/{memory['id']}?scope={memory['scope']}"
                 hx-confirm="Delete this memory?"
                 hx-target="closest .card"
                 hx-swap="outerHTML">
-            🗑️ Delete
+            <span class="material-icons-round" style="font-size: 1rem;">delete_outline</span>
+            Delete
         </button>
     ''' if show_delete else ""
 
     return f'''
-    <div class="card">
+    <div class="card glass-card" style="border-radius: 1.5rem;">
         <div class="card-header">
-            <div class="card-meta">
-                <span class="badge badge-type">{icon} {memory["type"]}</span>
-                <span class="badge badge-scope">{"📁" if memory["scope"] == "project" else "🌐"} {memory["scope"]}</span>
+            <div class="card-badges">
+                <span class="badge {type_class}">
+                    <span class="material-icons-round" style="font-size: 0.875rem;">{type_icon}</span>
+                    {memory["type"].title()}
+                </span>
+                <span class="badge {scope_class}">
+                    <span class="material-icons-round" style="font-size: 0.875rem;">{scope_icon}</span>
+                    {memory["scope"].title()}
+                </span>
                 {score_badge}
             </div>
+            {delete_btn}
         </div>
         <div class="card-content">{content}</div>
         <div class="card-footer">
-            <span>📄 {Path(memory["source"]).name}</span>
-            {delete_btn}
+            <span style="display: flex; align-items: center; gap: 0.375rem;">
+                <span class="material-icons-round" style="font-size: 0.875rem;">insert_drive_file</span>
+                {Path(memory["source"]).name}
+            </span>
         </div>
     </div>
     '''
@@ -956,124 +944,117 @@ async def dashboard():
         pct = int((count / total) * 100)
         # Color based on type
         if mem_type == "context":
-            color_class = "neon-border-cyan"
-            dot_style = 'background: var(--neon-cyan); box-shadow: 0 0 12px rgba(0, 242, 255, 0.6);'
-            fill_style = 'background: linear-gradient(to right, #0891b2, var(--neon-cyan)); box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);'
+            dot_color = "var(--neon-cyan)"
+            bar_color = "#0891b2"
         elif mem_type == "architecture":
-            color_class = "neon-border-indigo"
-            dot_style = 'background: var(--neon-indigo); box-shadow: 0 0 12px rgba(99, 102, 241, 0.6);'
-            fill_style = 'background: linear-gradient(to right, #4f46e5, var(--neon-indigo)); box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);'
+            dot_color = "var(--neon-violet)"
+            bar_color = "#8b5cf6"
+        elif mem_type == "decision":
+            dot_color = "var(--primary)"
+            bar_color = "#6366f1"
+        elif mem_type == "bugfix":
+            dot_color = "#fbbf24"
+            bar_color = "#f59e0b"
         else:
-            color_class = ""
-            dot_style = 'background: #94a3b8; box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);'
-            fill_style = 'background: rgba(255, 255, 255, 0.2);'
+            dot_color = "#94a3b8"
+            bar_color = "#64748b"
 
         type_bars += f'''
-        <div>
-            <div class="progress-item-header">
-                <div class="progress-label">
-                    <div class="progress-dot {color_class}" style="{dot_style}"></div>
-                    <span class="progress-label-text">{mem_type.title()}</span>
+        <div style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 0.75rem; height: 0.75rem; border-radius: 50%; background: {dot_color}; box-shadow: 0 0 12px {dot_color};"></div>
+                    <span style="font-weight: 600; color: #cbd5e1; font-size: 0.875rem;">{mem_type.title()}</span>
                 </div>
-                <span class="progress-value">{pct}%</span>
+                <span style="font-weight: 700; color: white; font-size: 0.875rem;">{pct}%</span>
             </div>
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" style="width: {pct}%; {fill_style}"></div>
+            <div style="height: 0.75rem; width: 100%; background: rgba(255, 255, 255, 0.05); border-radius: 9999px; overflow: hidden; padding: 2px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                <div style="height: 100%; background: linear-gradient(to right, {bar_color}, {dot_color}); border-radius: 9999px; width: {pct}%; box-shadow: 0 0 15px rgba({dot_color}, 0.3);"></div>
             </div>
         </div>
         '''
 
     content = f'''
-    <header class="page-header">
-        <div>
-            <h1 class="page-title">Neural Dashboard</h1>
-            <p class="page-subtitle">Monitoring your RAG memory retrieval metrics.</p>
+    <div class="page-header">
+        <div class="page-title">
+            <span class="material-icons-round page-title-icon" style="color: var(--neon-cyan);">dashboard</span>
+            <h1 class="page-title-text">Dashboard</h1>
         </div>
-        <div class="header-actions">
-            <button class="btn btn-secondary">
-                <span class="material-symbols-outlined" style="font-size: 18px;">calendar_today</span>
-                <span>Real-time Streams</span>
-            </button>
-            <button class="btn btn-primary" onclick="window.location.href='/index'">
-                Process New Corpus
-            </button>
-        </div>
-    </header>
+        <p class="page-subtitle">Monitoring your RAG memory retrieval metrics.</p>
+    </div>
 
     <div class="stats-grid">
-        <div class="glass-panel bento-card stat-card neon-border-cyan">
-            <div class="stat-card-label">Total Memories</div>
-            <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-top: 2rem;">
-                <span class="stat-card-value neon-text-cyan">{stats["total_count"]}</span>
+        <div class="stat-card glass-card neon-border-cyan">
+            <p class="stat-label">Total Memories</p>
+            <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-top: 1rem;">
+                <span class="stat-value" style="color: var(--neon-cyan);">{stats["total_count"]}</span>
             </div>
         </div>
 
-        <div class="glass-panel bento-card stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-label">Search Latency</div>
-                <span class="material-symbols-outlined stat-card-icon neon-text-indigo">speed</span>
+        <div class="stat-card glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+                <p class="stat-label">Search Latency</p>
+                <span class="material-icons-round" style="color: var(--primary); font-size: 1.5rem;">speed</span>
             </div>
             <div style="display: flex; align-items: baseline; gap: 0.5rem;">
-                <span class="stat-card-value" style="color: white;">30</span>
-                <span class="stat-card-meta">ms</span>
+                <span class="stat-value">30</span>
+                <span class="stat-sub">ms</span>
             </div>
         </div>
 
-        <div class="glass-panel bento-card stat-card neon-border-indigo">
-            <div class="stat-card-header">
-                <div class="stat-card-label">Global Scope</div>
-                <span class="material-symbols-outlined stat-card-icon neon-text-indigo">hub</span>
+        <div class="stat-card glass-card neon-border-violet">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+                <p class="stat-label">Global Scope</p>
+                <span class="material-icons-round" style="color: var(--neon-violet); font-size: 1.5rem;">hub</span>
             </div>
             <div style="display: flex; align-items: baseline; gap: 0.75rem;">
-                <span class="stat-card-value neon-text-indigo">{stats["global_count"]}</span>
-                <span class="stat-card-meta" style="color: #10b981;">ACTIVE</span>
+                <span class="stat-value" style="color: var(--neon-violet);">{stats["global_count"]}</span>
+                <span style="font-size: 0.625rem; font-weight: 700; color: #10b981;">ACTIVE</span>
             </div>
         </div>
 
-        <div class="glass-panel bento-card stat-card">
-            <div class="stat-card-label">Memory Types</div>
-            <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-top: 2rem;">
-                <span class="stat-card-value" style="color: white;">{len(stats["type_counts"])}</span>
-                <span class="stat-card-meta">CATEGORIES</span>
+        <div class="stat-card glass-card">
+            <p class="stat-label">Memory Types</p>
+            <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-top: 1rem;">
+                <span class="stat-value">{len(stats["type_counts"])}</span>
+                <span class="stat-sub">CATEGORIES</span>
             </div>
         </div>
     </div>
 
-    <div class="content-grid">
-        <div class="glass-panel distribution-card">
-            <div class="card-header">
-                <h2 class="card-title">Memory Distribution</h2>
-                <a href="/memories" class="card-action neon-text-indigo">Full Analysis</a>
+    <div style="padding: 0 3rem 3rem; display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+        <div class="glass-card" style="padding: 2rem; border-radius: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 style="font-size: 1.5rem; font-weight: 700; color: white;">Memory Distribution</h2>
+                <a href="/memories" style="font-size: 0.875rem; font-weight: 700; color: var(--primary); text-decoration: none; text-transform: uppercase; letter-spacing: 0.1em;">Full Analysis</a>
             </div>
-            <div class="progress-list">
+            <div>
                 {type_bars or '<div style="text-align: center; color: #64748b;">No memories yet</div>'}
             </div>
         </div>
 
-        <div class="side-cards">
-            <div class="glass-panel activity-card">
-                <h3 class="activity-title">Recent Activity</h3>
-                <div class="activity-list">
-                    <div class="activity-item">
-                        <div class="activity-icon-wrapper" style="background: rgba(0, 242, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.2);">
-                            <span class="material-symbols-outlined neon-text-cyan" style="font-size: 24px;">memory</span>
-                        </div>
-                        <div>
-                            <p class="activity-text">Vector Index Synced</p>
-                            <p class="activity-time">Just now</p>
-                        </div>
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            <div class="glass-card" style="padding: 1.5rem; border-radius: 2rem;">
+                <h3 style="font-size: 1.125rem; font-weight: 700; color: white; margin-bottom: 1.5rem;">Recent Activity</h3>
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <div style="width: 2.5rem; height: 2.5rem; background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.2); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <span class="material-icons-round" style="color: var(--neon-cyan); font-size: 1.5rem;">memory</span>
+                    </div>
+                    <div>
+                        <p style="font-weight: 600; color: white; font-size: 0.875rem; margin-bottom: 0.25rem;">Vector Index Synced</p>
+                        <p style="font-size: 0.6875rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Just now</p>
                     </div>
                 </div>
             </div>
 
-            <div class="glass-panel health-card">
-                <div class="health-glow"></div>
-                <div class="health-icon-wrapper">
-                    <span class="material-symbols-outlined health-icon neon-text-cyan">analytics</span>
+            <div class="glass-card" style="padding: 2rem; border-radius: 2rem; text-align: center; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -3rem; right: -3rem; width: 6rem; height: 6rem; background: rgba(34, 211, 238, 0.1); border-radius: 50%; filter: blur(60px);"></div>
+                <div style="width: 5rem; height: 5rem; background: rgba(255, 255, 255, 0.05); border-radius: 2rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <span class="material-icons-round" style="color: var(--neon-cyan); font-size: 2.5rem;">analytics</span>
                 </div>
-                <h3 class="health-title">Retrieval Health</h3>
-                <p class="health-description">
-                    System running at <span class="health-highlight neon-text-cyan">peak performance</span> with <span class="health-highlight" style="color: white;">minimal latency</span>.
+                <h3 style="font-size: 1.125rem; font-weight: 700; color: white; margin-bottom: 1rem;">Retrieval Health</h3>
+                <p style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; line-height: 1.6;">
+                    System running at <span style="color: var(--neon-cyan); font-weight: 700;">peak performance</span> with <span style="color: white; font-weight: 700;">minimal latency</span>.
                 </p>
             </div>
         </div>
@@ -1095,56 +1076,92 @@ async def search_page(q: str = "", type: str = "", scope: str = "all"):
                 results_html += render_memory_card(mem)
         else:
             results_html = '''
-            <div class="empty-state">
-                <div class="empty-state-icon">🔍</div>
-                <p>No results found</p>
+            <div style="text-align: center; padding: 4rem 2rem; color: #64748b;">
+                <span class="material-icons-round" style="font-size: 4rem; opacity: 0.3;">search_off</span>
+                <p style="margin-top: 1rem; font-weight: 600;">No results found</p>
             </div>
             '''
     else:
         results_html = '''
-        <div class="empty-state">
-            <div class="empty-state-icon">💡</div>
-            <p>Enter a search query to find memories</p>
+        <div style="text-align: center; padding: 4rem 2rem; color: #64748b;">
+            <span class="material-icons-round" style="font-size: 4rem; opacity: 0.3;">lightbulb</span>
+            <p style="margin-top: 1rem; font-weight: 600;">Enter a search query to find memories</p>
         </div>
         '''
 
+    # Scope pills
+    scope_all_class = "pill-active" if scope == "all" else "pill-inactive"
+    scope_project_class = "pill-active" if scope == "project" else "pill-inactive"
+    scope_global_class = "pill-active" if scope == "global" else "pill-inactive"
+
+    # Type pills
+    type_all_class = "pill-active" if not type else "pill-inactive"
+    type_context_class = "pill-active" if type == "context" else "pill-inactive"
+    type_architecture_class = "pill-active" if type == "architecture" else "pill-inactive"
+    type_decision_class = "pill-active" if type == "decision" else "pill-inactive"
+    type_bugfix_class = "pill-active" if type == "bugfix" else "pill-inactive"
+    type_preference_class = "pill-active" if type == "preference" else "pill-inactive"
+    type_snippet_class = "pill-active" if type == "snippet" else "pill-inactive"
+
     content = f'''
-    <div class="header">
-        <h1>🔍 Search</h1>
+    <div class="page-header">
+        <div class="page-title">
+            <span class="material-icons-round page-title-icon" style="color: var(--primary);">search</span>
+            <h1 class="page-title-text">Search Memories</h1>
+        </div>
+        <p class="page-subtitle">Semantic exploration of your indexed knowledge base.</p>
     </div>
 
-    <div class="search-container">
-        <span class="search-icon">🔍</span>
-        <input type="text"
-               class="search-input"
-               placeholder="Search memories..."
-               name="q"
-               value="{q}"
-               hx-get="/api/search"
-               hx-trigger="keyup changed delay:300ms"
-               hx-target="#results"
-               hx-include="[name='scope'],[name='type']">
-    </div>
+    <div style="padding: 0 3rem;">
+        <div style="position: relative; margin-bottom: 2rem;">
+            <div style="position: absolute; inset: -4px; background: linear-gradient(to right, rgba(99, 102, 241, 0.5), rgba(139, 92, 246, 0.5)); border-radius: 1.25rem; filter: blur(10px); opacity: 0.25;"></div>
+            <div style="position: relative; display: flex; align-items: center; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.25rem; padding: 1.25rem 1.5rem;">
+                <span class="material-icons-round" style="color: #94a3b8; margin-right: 1rem; font-size: 2rem;">search</span>
+                <input type="text"
+                       name="q"
+                       value="{q}"
+                       placeholder="Search for concept, code, or context..."
+                       style="background: transparent; border: none; outline: none; font-size: 1.25rem; color: white; width: 100%; font-weight: 300;"
+                       hx-get="/api/search"
+                       hx-trigger="keyup changed delay:300ms"
+                       hx-target="#results"
+                       hx-include="[name='scope'],[name='type']">
+            </div>
+        </div>
 
-    <div class="filters">
-        <select name="scope" class="filter-pill" hx-get="/api/search" hx-trigger="change" hx-target="#results" hx-include="[name='q'],[name='type']">
-            <option value="all" {"selected" if scope == "all" else ""}>All Scopes</option>
-            <option value="project" {"selected" if scope == "project" else ""}>📁 Project</option>
-            <option value="global" {"selected" if scope == "global" else ""}>🌐 Global</option>
-        </select>
-        <select name="type" class="filter-pill" hx-get="/api/search" hx-trigger="change" hx-target="#results" hx-include="[name='q'],[name='scope']">
-            <option value="" {"selected" if not type else ""}>All Types</option>
-            <option value="decision" {"selected" if type == "decision" else ""}>🎯 Decision</option>
-            <option value="bugfix" {"selected" if type == "bugfix" else ""}>🐛 Bugfix</option>
-            <option value="architecture" {"selected" if type == "architecture" else ""}>🏗️ Architecture</option>
-            <option value="preference" {"selected" if type == "preference" else ""}>⚙️ Preference</option>
-            <option value="snippet" {"selected" if type == "snippet" else ""}>📝 Snippet</option>
-            <option value="context" {"selected" if type == "context" else ""}>📄 Context</option>
-        </select>
-    </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
+            <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; margin-right: 0.5rem;">Filters</span>
 
-    <div id="results">
-        {results_html}
+            <input type="hidden" name="scope" value="{scope}">
+            <input type="hidden" name="type" value="{type}">
+
+            <a href="/search?q={q}&type={type}&scope=all" class="pill {scope_all_class}">
+                <span class="material-icons-round" style="font-size: 1rem;">language</span>
+                All Scopes
+            </a>
+            <a href="/search?q={q}&type={type}&scope=project" class="pill {scope_project_class}">
+                <span class="material-icons-round" style="font-size: 1rem;">folder</span>
+                Project
+            </a>
+            <a href="/search?q={q}&type={type}&scope=global" class="pill {scope_global_class}">
+                <span class="material-icons-round" style="font-size: 1rem;">public</span>
+                Global
+            </a>
+
+            <div style="width: 1px; height: 1.5rem; background: rgba(255, 255, 255, 0.1); margin: 0 0.5rem;"></div>
+
+            <a href="/search?q={q}&scope={scope}" class="pill {type_all_class}">All Types</a>
+            <a href="/search?q={q}&type=context&scope={scope}" class="pill {type_context_class}">Context</a>
+            <a href="/search?q={q}&type=architecture&scope={scope}" class="pill {type_architecture_class}">Architecture</a>
+            <a href="/search?q={q}&type=decision&scope={scope}" class="pill {type_decision_class}">Decision</a>
+            <a href="/search?q={q}&type=bugfix&scope={scope}" class="pill {type_bugfix_class}">Bugfix</a>
+            <a href="/search?q={q}&type=preference&scope={scope}" class="pill {type_preference_class}">Preference</a>
+            <a href="/search?q={q}&type=snippet&scope={scope}" class="pill {type_snippet_class}">Snippet</a>
+        </div>
+
+        <div id="results" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; padding-bottom: 3rem;">
+            {results_html}
+        </div>
     </div>
     '''
 
@@ -1162,34 +1179,60 @@ async def memories_page(type: str = "", scope: str = "all"):
             memories_html += render_memory_card(mem)
     else:
         memories_html = '''
-        <div class="empty-state">
-            <div class="empty-state-icon">📭</div>
-            <p>No memories found</p>
+        <div style="text-align: center; padding: 4rem 2rem; color: #64748b; grid-column: 1 / -1;">
+            <span class="material-icons-round" style="font-size: 4rem; opacity: 0.3;">inbox</span>
+            <p style="margin-top: 1rem; font-weight: 600;">No memories found</p>
         </div>
         '''
 
     stats = get_stats()
-    type_pills = '<a href="/memories" class="filter-pill ' + ('active' if not type else '') + '">All</a>'
+
+    # Type filter pills
+    type_pills = ""
+    type_all_class = "pill-active" if not type else "pill-inactive"
+    type_pills += f'<a href="/memories?scope={scope}" class="pill {type_all_class}">All</a>'
+
     for t in sorted(stats["type_counts"].keys()):
-        type_pills += f'<a href="/memories?type={t}&scope={scope}" class="filter-pill {"active" if type == t else ""}">{t}</a>'
+        pill_class = "pill-active" if type == t else "pill-inactive"
+        type_pills += f'<a href="/memories?type={t}&scope={scope}" class="pill {pill_class}">{t.title()}</a>'
+
+    # Scope filter pills
+    scope_all_class = "pill-active" if scope == "all" else "pill-inactive"
+    scope_project_class = "pill-active" if scope == "project" else "pill-inactive"
+    scope_global_class = "pill-active" if scope == "global" else "pill-inactive"
 
     content = f'''
-    <div class="header">
-        <h1>📚 Memories</h1>
+    <div class="page-header">
+        <div class="page-title">
+            <span class="material-icons-round page-title-icon" style="color: #fbbf24;">inventory_2</span>
+            <h1 class="page-title-text">Memories</h1>
+        </div>
+        <p class="page-subtitle">Explore and manage your persistent RAG knowledge base.</p>
     </div>
 
-    <div class="filters">
-        {type_pills}
-    </div>
+    <div style="padding: 0 3rem;">
+        <div class="pills" style="margin-bottom: 1rem;">
+            {type_pills}
+        </div>
 
-    <div class="filters">
-        <a href="/memories?type={type}&scope=all" class="filter-pill {"active" if scope == "all" else ""}">All</a>
-        <a href="/memories?type={type}&scope=project" class="filter-pill {"active" if scope == "project" else ""}">📁 Project</a>
-        <a href="/memories?type={type}&scope=global" class="filter-pill {"active" if scope == "global" else ""}">🌐 Global</a>
-    </div>
+        <div class="pills" style="margin-bottom: 2rem;">
+            <a href="/memories?type={type}&scope=all" class="pill {scope_all_class}">
+                <span class="material-icons-round" style="font-size: 1rem;">language</span>
+                All
+            </a>
+            <a href="/memories?type={type}&scope=project" class="pill {scope_project_class}">
+                <span class="material-icons-round" style="font-size: 1rem;">folder</span>
+                Project
+            </a>
+            <a href="/memories?type={type}&scope=global" class="pill {scope_global_class}">
+                <span class="material-icons-round" style="font-size: 1rem;">public</span>
+                Global
+            </a>
+        </div>
 
-    <div id="memories-list">
-        {memories_html}
+        <div id="memories-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem; padding-bottom: 3rem;">
+            {memories_html}
+        </div>
     </div>
     '''
 
@@ -1200,30 +1243,89 @@ async def memories_page(type: str = "", scope: str = "all"):
 async def index_page():
     """Index page"""
     content = '''
-    <div class="header">
-        <h1>📁 Index Files</h1>
-    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; padding: 3rem;">
+        <div style="width: 100%; max-width: 42rem;">
+            <header style="margin-bottom: 2.5rem; text-align: center;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem; margin-bottom: 1.5rem; border-radius: 1.5rem; background: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2);">
+                    <span class="material-icons-round" style="font-size: 3rem;">folder</span>
+                </div>
+                <h2 style="font-size: 2.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem;">Index Files</h2>
+                <p style="color: #94a3b8; font-size: 1.125rem; font-weight: 500;">Add local resources to your semantic knowledge base</p>
+            </header>
 
-    <div class="card">
-        <h3 style="margin-bottom: 1rem;">Index a file or directory</h3>
-        <form hx-post="/api/index" hx-target="#index-result" hx-swap="innerHTML">
-            <div style="margin-bottom: 1rem;">
-                <input type="text" name="path" class="search-input" placeholder="~/path/to/file_or_directory" style="padding-left: 1rem;">
+            <div class="glass-card" style="padding: 2rem; border-radius: 2rem;">
+                <form hx-post="/api/index" hx-target="#index-result" hx-swap="innerHTML">
+                    <div class="form-group">
+                        <label class="form-label">Path to file or directory</label>
+                        <div style="position: relative;">
+                            <input type="text"
+                                   name="path"
+                                   class="form-input"
+                                   placeholder="~/path/to/file_or_directory"
+                                   style="font-family: 'Inter', monospace; padding-right: 3rem;">
+                            <div style="position: absolute; inset: 0; left: auto; display: flex; align-items: center; padding-right: 1.25rem; pointer-events: none; color: #64748b;">
+                                <span class="material-icons-round">terminal</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="scope" value="project" checked class="radio-input">
+                            <span class="radio-text">
+                                <span class="material-icons-round" style="font-size: 1.125rem;">folder_open</span>
+                                Project
+                            </span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="scope" value="global" class="radio-input">
+                            <span class="radio-text">
+                                <span class="material-icons-round" style="font-size: 1.125rem;">public</span>
+                                Global
+                            </span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1rem 1.5rem;">
+                        <span class="material-icons-round">upload_file</span>
+                        <span>Index Content</span>
+                    </button>
+
+                    <div style="margin-top: 2rem; display: flex; align-items: start; gap: 1rem; padding: 1rem; border-radius: 0.75rem; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.1);">
+                        <span class="material-icons-round" style="color: var(--primary); font-size: 1.25rem; margin-top: 0.125rem;">info</span>
+                        <p style="font-size: 0.875rem; color: #94a3b8; line-height: 1.6;">
+                            Files will be processed using semantic chunking.
+                            Supported formats: <code style="background: rgba(99, 102, 241, 0.2); color: var(--primary); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.75rem;">.md</code>,
+                            <code style="background: rgba(99, 102, 241, 0.2); color: var(--primary); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.75rem;">.py</code>,
+                            <code style="background: rgba(99, 102, 241, 0.2); color: var(--primary); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.75rem;">.txt</code>, and
+                            <code style="background: rgba(99, 102, 241, 0.2); color: var(--primary); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.75rem;">.pdf</code>.
+                        </p>
+                    </div>
+                </form>
+                <div id="index-result" style="margin-top: 1.5rem;"></div>
             </div>
-            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="radio" name="scope" value="project" checked> 📁 Project
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="radio" name="scope" value="global"> 🌐 Global
-                </label>
+
+            <div style="margin-top: 3rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                <div class="glass-card" style="padding: 1rem; text-align: center; border-radius: 1.5rem;">
+                    <div style="color: var(--primary); margin-bottom: 0.5rem;">
+                        <span class="material-icons-round">bolt</span>
+                    </div>
+                    <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">Fast Indexing</p>
+                </div>
+                <div class="glass-card" style="padding: 1rem; text-align: center; border-radius: 1.5rem;">
+                    <div style="color: var(--neon-cyan); margin-bottom: 0.5rem;">
+                        <span class="material-icons-round">security</span>
+                    </div>
+                    <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">Local Privacy</p>
+                </div>
+                <div class="glass-card" style="padding: 1rem; text-align: center; border-radius: 1.5rem;">
+                    <div style="color: #fbbf24; margin-bottom: 0.5rem;">
+                        <span class="material-icons-round">auto_awesome</span>
+                    </div>
+                    <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">AI Ready</p>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary">
-                <span class="htmx-indicator">⏳</span>
-                Index
-            </button>
-        </form>
-        <div id="index-result" style="margin-top: 1rem;"></div>
+        </div>
     </div>
     '''
 
