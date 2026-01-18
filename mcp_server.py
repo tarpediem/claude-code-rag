@@ -1079,6 +1079,15 @@ async def call_tool(name: str, arguments: dict):
             # Create parent dirs if needed (for cursor format)
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
+            # Backup existing file if it exists (prevent data loss!)
+            backup_path = None
+            if out_path.exists():
+                backup_path = out_path.with_suffix(out_path.suffix + ".bak")
+                # Keep only latest backup
+                if backup_path.exists():
+                    backup_path.unlink()
+                out_path.rename(backup_path)
+
             # Write file
             out_path.write_text("\n".join(lines))
 
@@ -1101,6 +1110,9 @@ async def call_tool(name: str, arguments: dict):
             output = f"✅ Exported {total_entries} memories to {out_path}\n"
             output += f"   Format: {export_format} ({FORMAT_FILES[export_format]})\n"
             output += f"   Scope: {scope}\n"
+
+            if backup_path:
+                output += f"   ⚠️  Backup created: {backup_path}\n"
 
             if symlinks_created:
                 output += f"   Symlinks created: {', '.join(symlinks_created)}\n"
