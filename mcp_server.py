@@ -26,10 +26,22 @@ EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
 CHROMA_PATH = os.environ.get("CHROMA_PATH", os.path.expanduser("~/.local/share/claude-memory"))
 PROJECT_PATH = os.environ.get("PROJECT_PATH", os.getcwd())
 
+# Security: warn about HTTP on non-localhost
+if OLLAMA_URL.startswith("http://") and "localhost" not in OLLAMA_URL and "127.0.0.1" not in OLLAMA_URL:
+    import logging
+    logging.warning(f"Using HTTP for non-localhost Ollama ({OLLAMA_URL}) - data in transit is unencrypted!")
+
 # Scopes
 SCOPE_GLOBAL = "global"
 SCOPE_PROJECT = "project"
 SCOPE_ALL = "all"
+
+# Security constants
+VALID_SCOPES = {SCOPE_GLOBAL, SCOPE_PROJECT, SCOPE_ALL}
+VALID_MEMORY_TYPES = {"context", "decision", "bugfix", "architecture", "preference", "snippet"}
+MAX_QUERY_LENGTH = 10000
+MAX_RESULTS = 100
+MAX_CONTENT_LENGTH = 100000
 
 # Sync state file (tracks file hashes for change detection)
 SYNC_STATE_FILE = os.path.join(CHROMA_PATH, "sync_state.json")
@@ -59,7 +71,8 @@ _collections = {}  # scope -> collection
 
 def get_project_id() -> str:
     """Generate a unique project ID from the project path"""
-    return hashlib.md5(PROJECT_PATH.encode()).hexdigest()[:12]
+    # Security: use SHA256 instead of MD5
+    return hashlib.sha256(PROJECT_PATH.encode()).hexdigest()[:12]
 
 
 def get_db_path(scope: str) -> str:
@@ -69,6 +82,25 @@ def get_db_path(scope: str) -> str:
     else:
         project_id = get_project_id()
         return os.path.join(CHROMA_PATH, "projects", project_id)
+
+
+def is_safe_path(path: Path, base_path: Path = None) -> bool:
+    """Check if path is safe (no traversal, no symlinks to outside)"""
+    try:
+        resolved = path.resolve()
+        # Reject if path contains ..
+        if ".." in str(path):
+            return False
+        # If base_path provided, ensure resolved path is within it
+        if base_path:
+            base_resolved = base_path.resolve()
+            try:
+                resolved.relative_to(base_resolved)
+            except ValueError:
+                return False
+        return True
+    except (OSError, ValueError):
+        return False
 
 
 def get_collection(scope: str = SCOPE_PROJECT):
@@ -723,8 +755,17 @@ async def call_tool(name: str, arguments: dict):
         memory_type = arguments.get("memory_type")
         scope = arguments.get("scope", SCOPE_ALL)
 
+        # Security: validate inputs
         if not query:
             return [TextContent(type="text", text="Error: query is required")]
+        if len(query) > MAX_QUERY_LENGTH:
+            return [TextContent(type="text", text=f"Error: query too long (max {MAX_QUERY_LENGTH} chars)")]
+        if not isinstance(n_results, int) or n_results < 1 or n_results > MAX_RESULTS:
+            n_results = min(max(1, int(n_results) if isinstance(n_results, (int, float)) else 3), MAX_RESULTS)
+        if scope not in VALID_SCOPES:
+            return [TextContent(type="text", text=f"Error: invalid scope (must be one of: {', '.join(VALID_SCOPES)})")]
+        if memory_type and memory_type not in VALID_MEMORY_TYPES:
+            return [TextContent(type="text", text=f"Error: invalid memory_type (must be one of: {', '.join(VALID_MEMORY_TYPES)})")]
 
         try:
             start = time.time()
@@ -790,13 +831,20 @@ async def call_tool(name: str, arguments: dict):
         path_str = arguments.get("path", "")
         scope = arguments.get("scope", SCOPE_PROJECT)
 
+        # Security: validate inputs
         if not path_str:
             return [TextContent(type="text", text="Error: path is required")]
+        if scope not in {SCOPE_PROJECT, SCOPE_GLOBAL}:
+            return [TextContent(type="text", text="Error: invalid scope (must be 'project' or 'global')")]
 
         try:
             path = Path(os.path.expanduser(path_str))
+
+            # Security: path validation
+            if not is_safe_path(path):
+                return [TextContent(type="text", text="Error: invalid path")]
             if not path.exists():
-                return [TextContent(type="text", text=f"Error: Path not found: {path}")]
+                return [TextContent(type="text", text="Error: path not found or not accessible")]
 
             start = time.time()
             collection = get_collection(scope)
@@ -869,14 +917,23 @@ async def call_tool(name: str, arguments: dict):
         tags = arguments.get("tags", [])
         scope = arguments.get("scope", SCOPE_PROJECT)
 
+        # Security: validate inputs
         if not content:
             return [TextContent(type="text", text="Error: content is required")]
+        if len(content) > MAX_CONTENT_LENGTH:
+            return [TextContent(type="text", text=f"Error: content too long (max {MAX_CONTENT_LENGTH} chars)")]
+        if scope not in {SCOPE_PROJECT, SCOPE_GLOBAL}:
+            return [TextContent(type="text", text="Error: invalid scope")]
+        if memory_type not in VALID_MEMORY_TYPES:
+            return [TextContent(type="text", text=f"Error: invalid memory_type (must be one of: {', '.join(VALID_MEMORY_TYPES)})")]
+        if not isinstance(tags, list):
+            tags = []
 
         try:
             collection = get_collection(scope)
 
-            # Generate unique ID
-            doc_id = hashlib.md5(f"{content}{time.time()}".encode()).hexdigest()[:12]
+            # Generate unique ID (use SHA256)
+            doc_id = hashlib.sha256(f"{content}{time.time()}".encode()).hexdigest()[:12]
 
             embedding = get_embedding(content)
             metadata = {
@@ -995,8 +1052,15 @@ async def call_tool(name: str, arguments: dict):
         confirm = arguments.get("confirm", False)
         scope = arguments.get("scope", SCOPE_PROJECT)
 
+        # Security: validate inputs
         if not query and not memory_id:
             return [TextContent(type="text", text="Error: either 'query' or 'memory_id' is required")]
+        if scope not in {SCOPE_PROJECT, SCOPE_GLOBAL}:
+            return [TextContent(type="text", text="Error: invalid scope")]
+        if query and len(query) > MAX_QUERY_LENGTH:
+            return [TextContent(type="text", text="Error: query too long")]
+        if memory_id and not all(c.isalnum() or c in "-_" for c in memory_id):
+            return [TextContent(type="text", text="Error: invalid memory_id format")]
 
         try:
             collection = get_collection(scope)
@@ -1048,6 +1112,14 @@ async def call_tool(name: str, arguments: dict):
         source_filter = arguments.get("source", "")
         limit = arguments.get("limit", 20)
         scope = arguments.get("scope", SCOPE_ALL)
+
+        # Security: validate inputs
+        if scope not in VALID_SCOPES:
+            return [TextContent(type="text", text="Error: invalid scope")]
+        if memory_type and memory_type not in VALID_MEMORY_TYPES:
+            return [TextContent(type="text", text="Error: invalid memory_type")]
+        if not isinstance(limit, int) or limit < 1 or limit > MAX_RESULTS:
+            limit = min(max(1, int(limit) if isinstance(limit, (int, float)) else 20), MAX_RESULTS)
 
         try:
             filtered = []
@@ -1698,6 +1770,10 @@ async def call_tool(name: str, arguments: dict):
     elif name == "rag_reset":
         scope = arguments.get("scope", SCOPE_PROJECT)
         confirm = arguments.get("confirm", False)
+
+        # Security: validate inputs
+        if scope not in VALID_SCOPES:
+            return [TextContent(type="text", text="Error: invalid scope")]
 
         try:
             scopes_to_clear = []

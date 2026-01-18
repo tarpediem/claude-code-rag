@@ -45,6 +45,9 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 CHROMA_PATH = "~/.local/share/claude-memory"
 
+# Security constants
+VALID_SCOPES = {"all", "project", "global"}
+
 try:
     from claude_rag import (
         search_memories,
@@ -879,6 +882,16 @@ class RagTUI(App):
         try:
             scope = "global" if self.query_one("#idx-global").variant == "primary" else "project"
 
+            # Security: validate scope
+            if scope not in VALID_SCOPES:
+                log.update("❌ Invalid scope")
+                return
+
+            # Security: basic path validation
+            if ".." in path:
+                log.update("❌ Invalid path")
+                return
+
             if DIRECT_IMPORT:
                 result = index_path(path, scope=scope)
                 log.update(f"✅ Indexed: {result}")
@@ -886,7 +899,7 @@ class RagTUI(App):
                 import subprocess
                 result = subprocess.run(
                     [sys.executable, str(SCRIPT_DIR / "claude_rag.py"), "index", path, "--scope", scope],
-                    capture_output=True, text=True
+                    capture_output=True, text=True, timeout=120
                 )
                 log.update(result.stdout or result.stderr or "✅ Done")
 

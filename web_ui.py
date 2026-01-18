@@ -33,6 +33,12 @@ except ImportError:
 CHROMA_PATH = os.environ.get("CHROMA_PATH", "~/.local/share/claude-memory")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
+# Security constants
+VALID_SCOPES = {"all", "project", "global"}
+VALID_MEMORY_TYPES = {"context", "decision", "bugfix", "architecture", "preference", "snippet", "markdown", "python", "text"}
+MAX_QUERY_LENGTH = 5000
+MAX_RESULTS = 100
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATABASE HELPERS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -921,6 +927,14 @@ async def index_page():
 @app.get("/api/search", response_class=HTMLResponse)
 async def api_search(q: str = "", type: str = "", scope: str = "all"):
     """Search API endpoint (returns HTML for HTMX)"""
+    # Security: validate inputs
+    if scope not in VALID_SCOPES:
+        scope = "all"
+    if type and type not in VALID_MEMORY_TYPES:
+        type = ""
+    if len(q) > MAX_QUERY_LENGTH:
+        q = q[:MAX_QUERY_LENGTH]
+
     if not q:
         return '''
         <div class="empty-state">
@@ -948,6 +962,14 @@ async def api_search(q: str = "", type: str = "", scope: str = "all"):
 @app.delete("/api/memories/{memory_id}", response_class=HTMLResponse)
 async def api_delete_memory(memory_id: str, scope: str = "project"):
     """Delete a memory"""
+    # Security: validate scope
+    if scope not in {"project", "global"}:
+        raise HTTPException(status_code=400, detail="Invalid scope")
+
+    # Security: validate memory_id format (alphanumeric + dash/underscore)
+    if not memory_id or not all(c.isalnum() or c in "-_" for c in memory_id):
+        raise HTTPException(status_code=400, detail="Invalid memory ID")
+
     success = delete_memory(memory_id, scope)
     if success:
         return ""  # Empty response removes the element
@@ -959,9 +981,18 @@ async def api_index(path: str = Form(...), scope: str = Form("project")):
     """Index a file or directory"""
     import subprocess
 
+    # Security: validate scope
+    if scope not in {"project", "global"}:
+        return '<div style="color: var(--accent-red);">❌ Invalid scope</div>'
+
     expanded_path = os.path.expanduser(path)
+
+    # Security: basic path validation
+    if ".." in path or not expanded_path:
+        return '<div style="color: var(--accent-red);">❌ Invalid path</div>'
+
     if not os.path.exists(expanded_path):
-        return f'<div style="color: var(--accent-red);">❌ Path not found: {path}</div>'
+        return '<div style="color: var(--accent-red);">❌ Path not found or not accessible</div>'
 
     try:
         result = subprocess.run(
@@ -970,8 +1001,10 @@ async def api_index(path: str = Form(...), scope: str = Form("project")):
         )
         output = result.stdout or result.stderr or "Done"
         return f'<div style="color: var(--accent-green);">✅ {output}</div>'
-    except Exception as e:
-        return f'<div style="color: var(--accent-red);">❌ Error: {e}</div>'
+    except subprocess.TimeoutExpired:
+        return '<div style="color: var(--accent-red);">❌ Indexing timeout</div>'
+    except Exception:
+        return '<div style="color: var(--accent-red);">❌ Indexing failed</div>'
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -984,8 +1017,13 @@ def main():
 
     parser = argparse.ArgumentParser(description="Claude Code RAG Web UI")
     parser.add_argument("-p", "--port", type=int, default=8420, help="Port (default: 8420)")
-    parser.add_argument("--host", default="0.0.0.0", help="Host (default: 0.0.0.0)")
+    parser.add_argument("--host", default="127.0.0.1", help="Host (default: 127.0.0.1, use 0.0.0.0 for network access)")
     args = parser.parse_args()
+
+    # Security warning for network exposure
+    if args.host == "0.0.0.0":
+        print("⚠️  WARNING: Binding to 0.0.0.0 exposes the server to the network WITHOUT authentication!")
+        print("⚠️  Only use this on trusted networks.")
 
     print("🌐 Starting Claude Code RAG Web UI...")
     print(f"📍 Open http://localhost:{args.port} in your browser")

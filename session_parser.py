@@ -4,11 +4,16 @@ Claude Code Session Parser
 Parses .jsonl session files and extracts meaningful content for RAG indexing.
 """
 import json
+import logging
 import re
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Iterator, Optional
+
+# Security constants
+MAX_LINE_SIZE = 1_000_000  # 1MB per line
+MAX_FILE_SIZE = 100_000_000  # 100MB per file
 
 
 @dataclass
@@ -126,11 +131,34 @@ def parse_session_file(filepath: Path) -> Iterator[ExtractedMemory]:
     if not filepath.exists():
         return
 
+    # Security: reject symlinks
+    if filepath.is_symlink():
+        logging.warning(f"Skipping symlink: {filepath}")
+        return
+
+    # Security: check file size
+    try:
+        file_size = filepath.stat().st_size
+        if file_size > MAX_FILE_SIZE:
+            logging.warning(f"Skipping large file ({file_size} bytes): {filepath}")
+            return
+    except OSError:
+        return
+
     with open(filepath, 'r') as f:
-        for line in f:
+        for line_num, line in enumerate(f):
+            # Security: check line size
+            if len(line) > MAX_LINE_SIZE:
+                logging.warning(f"Skipping large line {line_num} in {filepath}")
+                continue
+
             try:
                 msg = json.loads(line)
             except json.JSONDecodeError:
+                continue
+
+            # Security: validate message structure
+            if not isinstance(msg, dict):
                 continue
 
             msg_type = msg.get("type")
@@ -179,9 +207,12 @@ def get_all_sessions(projects_dir: Optional[Path] = None) -> list[Path]:
 
     sessions = []
     for project_dir in projects_dir.iterdir():
-        if project_dir.is_dir():
+        # Security: reject symlinked directories
+        if project_dir.is_dir() and not project_dir.is_symlink():
             for session_file in project_dir.glob("*.jsonl"):
-                sessions.append(session_file)
+                # Security: reject symlinked files
+                if not session_file.is_symlink():
+                    sessions.append(session_file)
 
     return sorted(sessions, key=lambda p: p.stat().st_mtime, reverse=True)
 
