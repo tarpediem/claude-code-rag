@@ -480,6 +480,11 @@ async def list_tools():
                         "description": "Memory scope: 'project' (current project), 'global' (system-wide), 'all' (both, default)",
                         "enum": ["project", "global", "all"],
                         "default": "all"
+                    },
+                    "compact": {
+                        "type": "boolean",
+                        "description": "Return compact results (title only, ~50 chars) to save tokens. Recommended for Claude Pro users. Default: false",
+                        "default": false
                     }
                 },
                 "required": ["query"]
@@ -787,6 +792,7 @@ async def call_tool(name: str, arguments: dict):
         n_results = arguments.get("n_results", 3)
         memory_type = arguments.get("memory_type")
         scope = arguments.get("scope", SCOPE_ALL)
+        compact = arguments.get("compact", False)
 
         # Security: validate inputs
         if not query:
@@ -850,8 +856,18 @@ async def call_tool(name: str, arguments: dict):
                 mem_scope = meta.get("_scope", "")
                 type_str = f" [{mem_type}]" if mem_type else ""
                 scope_str = f" 🌐" if mem_scope == "global" else " 📁"
-                output += f"[{i+1}]{scope_str} Score: {score:.3f}{type_str} | Source: {source}\n"
-                output += f"    {doc[:300]}...\n\n"
+
+                if compact:
+                    # Compact mode: just title/first line (~50-60 chars)
+                    title = doc.split('\n')[0][:60].strip()
+                    if len(doc.split('\n')[0]) > 60:
+                        title += "..."
+                    source_short = source.split('/')[-1] if '/' in source else source
+                    output += f"[{i+1}]{scope_str}{type_str} {title} ({source_short})\n"
+                else:
+                    # Normal mode: full details
+                    output += f"[{i+1}]{scope_str} Score: {score:.3f}{type_str} | Source: {source}\n"
+                    output += f"    {doc[:300]}...\n\n"
 
             return [TextContent(type="text", text=output)]
 

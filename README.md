@@ -238,7 +238,7 @@ Restart Claude Code. You'll now have **13 native tools**:
 
 | Tool | Description |
 |------|-------------|
-| `rag_search` | Semantic search with optional type/scope filters |
+| `rag_search` | Semantic search with optional type/scope filters. Use `compact=true` to save tokens (66% reduction) |
 | `rag_index` | Index files or directories into memory |
 | `rag_store` | Manually store a memory with tags |
 | `rag_sync` | Sync watched files (auto-detects changes) |
@@ -260,6 +260,7 @@ The project includes a **Claude Skill** that automatically teaches Claude to use
 
 **What it does automatically:**
 - ✅ Search RAG at session start for context
+- ✅ Use `compact=true` mode by default (saves 66% tokens, perfect for Claude Pro)
 - ✅ Store decisions, bug fixes, and snippets **during** work (not after)
 - ✅ Use proper memory types and tags
 - ✅ Sync after important file changes

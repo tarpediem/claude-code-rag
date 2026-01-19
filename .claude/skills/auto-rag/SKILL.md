@@ -54,14 +54,21 @@ This skill should activate during:
 
 Before starting work, check existing context:
 ```
-rag_search(query="relevant keywords", scope="all")
+rag_search(query="relevant keywords", scope="all", compact=true)
 ```
+
+**IMPORTANT: Use `compact=true` by default** to save tokens (recommended for Claude Pro users).
+Only use `compact=false` when you need full context details.
 
 This prevents:
 - Repeating previous mistakes
 - Redoing solved problems
 - Ignoring established preferences
 - Missing important context
+
+**Token optimization:**
+- `compact=true`: ~60 chars per result (saves 66% tokens)
+- `compact=false`: ~300 chars per result (use only when needed)
 
 ### 3. Progressive Storage Pattern
 
@@ -105,7 +112,7 @@ Use descriptive tags for better searchability:
 User: "Add a dark mode toggle to the dashboard"
 
 Claude:
-1. rag_search(query="dark mode theme switching", scope="project")
+1. rag_search(query="dark mode theme switching", scope="project", compact=true)
    → Check if we've implemented theme switching before
 
 2. [Implements solution]
