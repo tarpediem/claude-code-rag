@@ -25,3 +25,14 @@ assets/*.tape
 assets/*_standalone.py
 assets/run_*.sh
 assets/record_*.sh
+
+# Web UI backups and temp files
+web_ui_backup.py
+web_ui_old*.py
+web_ui_new.py
+web_ui_neon.html
+web_ui_template.html
+assets/frames/
+
+# Demo recording scripts
+record_demos.sh
