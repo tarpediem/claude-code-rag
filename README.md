@@ -252,24 +252,27 @@ Restart Claude Code. You'll now have **13 native tools**:
 | `rag_restore` | Restore memories from JSON backup |
 | `rag_reset` | Clear entire database (with confirmation) |
 
-### Auto-RAG Instructions
+### 🚀 Auto-RAG Skill (Recommended)
 
-Add this to your `CLAUDE.md` to make Claude **automatically** use the RAG:
+The project includes a **Claude Skill** that automatically teaches Claude to use the RAG system correctly, without any manual intervention needed.
 
-```markdown
-## RAG Memory System
+**Location**: `.claude/skills/auto-rag/SKILL.md`
 
-A local RAG system is available via MCP. **Use it proactively**:
+**What it does automatically:**
+- ✅ Search RAG at session start for context
+- ✅ Store decisions, bug fixes, and snippets **during** work (not after)
+- ✅ Use proper memory types and tags
+- ✅ Sync after important file changes
 
-### When to use:
-- **Search first** → Use `rag_search` before asking the user
-- **Check history** → Search for previously solved problems
-- **Store decisions** → Use `rag_store` for important choices
+**Setup**: Just copy the skill to your project or global skills folder:
+```bash
+# For this project (already included)
+cp -r .claude/skills/auto-rag ~/.claude/skills/
 
-### Maintenance:
-- **Session start** → Run `rag_sync` to update index
-- **After changes** → Run `rag_sync` when CLAUDE.md is modified
+# Now works across all your projects!
 ```
+
+The skill activates automatically during coding/debugging—no commands needed. Even beginners get professional RAG workflow without knowing how it works.
 
 ### Example MCP Usage
 

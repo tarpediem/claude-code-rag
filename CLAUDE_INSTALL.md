@@ -117,6 +117,9 @@ claude-rag web
 
 # Launch TUI
 claude-rag ui
+
+# RECOMMENDED: Copy the Auto-RAG skill globally
+cp -r .claude/skills/auto-rag ~/.claude/skills/
 ```
 
 **Windows (PowerShell):**
@@ -132,6 +135,9 @@ claude-rag web
 
 # Launch TUI
 claude-rag ui
+
+# RECOMMENDED: Copy the Auto-RAG skill globally
+Copy-Item -Recurse .claude\skills\auto-rag $env:USERPROFILE\.claude\skills\
 ```
 
 ---
