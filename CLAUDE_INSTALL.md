@@ -1,33 +1,38 @@
 # 🚀 Claude Code Installation Prompt
 
-Copy this prompt and paste it into Claude Code to automatically install **Claude Code RAG**:
+Copy this prompt and paste it into Claude Code to automatically install **Claude Code RAG** on any platform:
 
 ```
-Please install Claude Code RAG for me:
+Please install Claude Code RAG for me. Adapt the installation for my operating system:
 
-1. Clone the repository to ~/.local/share/claude-code-rag
-2. Install dependencies using uv (or pip if uv not available)
-3. Create a symlink for the CLI at ~/.local/bin/claude-rag
-4. Pull the nomic-embed-text model with ollama (if ollama is installed)
+1. Clone https://github.com/tarpediem/claude-code-rag to the appropriate location:
+   - Linux: ~/.local/share/claude-code-rag
+   - macOS: ~/Library/Application Support/claude-code-rag
+   - Windows: %LOCALAPPDATA%\claude-code-rag
+
+2. Install dependencies using uv (preferred) or pip
+3. Create a CLI launcher appropriate for my OS
+4. Pull the nomic-embed-text model with ollama (if installed)
 5. Initialize the database
-6. Add the MCP server configuration to my ~/.claude.json
+6. Show me how to configure the MCP server in ~/.claude.json
 
 Repository: https://github.com/tarpediem/claude-code-rag
 
-After installation, show me how to:
-- Index my first directory
-- Search memories
-- Launch the Web UI
+After installation, show me how to use it.
 ```
 
 ---
 
 ## Alternative: One-Liner Installation
 
-If you prefer a one-liner, run this in your terminal:
-
+### Linux / macOS
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tarpediem/claude-code-rag/main/install.sh | bash
+```
+
+### Windows (PowerShell as Administrator)
+```powershell
+iwr -useb https://raw.githubusercontent.com/tarpediem/claude-code-rag/main/install.ps1 | iex
 ```
 
 ---
@@ -99,9 +104,25 @@ curl -fsSL https://raw.githubusercontent.com/tarpediem/claude-code-rag/main/inst
 
 ## Quick Start After Installation
 
+**Linux / macOS:**
 ```bash
 # Index your documentation
 claude-rag index ~/projects/my-app/docs/
+
+# Search memories
+claude-rag search "database configuration"
+
+# Launch Web UI
+claude-rag web
+
+# Launch TUI
+claude-rag ui
+```
+
+**Windows (PowerShell):**
+```powershell
+# Index your documentation
+claude-rag index C:\projects\my-app\docs
 
 # Search memories
 claude-rag search "database configuration"

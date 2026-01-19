@@ -1,24 +1,43 @@
-#!/bin/bash
-# Claude Code RAG - One-liner installer
-# curl -fsSL https://raw.githubusercontent.com/tarpediem/claude-code-rag/main/install.sh | bash
+#!/usr/bin/env bash
+# Claude Code RAG - Cross-platform installer for Linux/macOS
+# Usage: curl -fsSL https://raw.githubusercontent.com/tarpediem/claude-code-rag/main/install.sh | bash
 
 set -e
 
 echo "🧠 Installing Claude Code RAG..."
 
+# Detect OS
+OS="$(uname -s)"
+case "$OS" in
+    Linux*)     OS_TYPE="Linux";;
+    Darwin*)    OS_TYPE="macOS";;
+    *)          echo "❌ Unsupported OS: $OS"; exit 1;;
+esac
+echo "📍 Detected OS: $OS_TYPE"
+
 # Check for required tools
 if ! command -v git &> /dev/null; then
     echo "❌ Error: git is required but not installed."
+    echo "   macOS: xcode-select --install"
+    echo "   Linux: sudo apt install git  or  sudo pacman -S git"
     exit 1
 fi
 
 if ! command -v python3 &> /dev/null; then
     echo "❌ Error: python3 is required but not installed."
+    echo "   macOS: brew install python3"
+    echo "   Linux: sudo apt install python3  or  sudo pacman -S python"
     exit 1
 fi
 
-# Install directory
-INSTALL_DIR="${HOME}/.local/share/claude-code-rag"
+# Install directory (cross-platform)
+if [ "$OS_TYPE" = "macOS" ]; then
+    INSTALL_DIR="${HOME}/Library/Application Support/claude-code-rag"
+    BIN_DIR="${HOME}/.local/bin"
+else
+    INSTALL_DIR="${HOME}/.local/share/claude-code-rag"
+    BIN_DIR="${HOME}/.local/bin"
+fi
 
 # Clone repository
 if [ -d "$INSTALL_DIR" ]; then
@@ -27,6 +46,7 @@ if [ -d "$INSTALL_DIR" ]; then
     git pull
 else
     echo "📦 Cloning repository..."
+    mkdir -p "$(dirname "$INSTALL_DIR")"
     git clone https://github.com/tarpediem/claude-code-rag.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 fi
@@ -38,32 +58,61 @@ if command -v uv &> /dev/null; then
 else
     echo "📦 Installing with pip..."
     python3 -m venv .venv
-    source .venv/bin/activate
+
+    # Activate venv (cross-platform)
+    if [ -f ".venv/bin/activate" ]; then
+        source .venv/bin/activate
+    else
+        echo "❌ Failed to create virtual environment"
+        exit 1
+    fi
+
+    pip install --upgrade pip
     pip install -e .
 fi
 
-# Create symlink for CLI
-mkdir -p "${HOME}/.local/bin"
-ln -sf "${INSTALL_DIR}/.venv/bin/claude-rag" "${HOME}/.local/bin/claude-rag"
+# Create CLI launcher
+mkdir -p "$BIN_DIR"
+
+# Create wrapper script instead of symlink (more portable)
+cat > "$BIN_DIR/claude-rag" << 'EOF'
+#!/usr/bin/env bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ "$OS_TYPE" = "macOS" ]; then
+    RAG_DIR="${HOME}/Library/Application Support/claude-code-rag"
+else
+    RAG_DIR="${HOME}/.local/share/claude-code-rag"
+fi
+exec "${RAG_DIR}/.venv/bin/python" -m claude_rag "$@"
+EOF
+chmod +x "$BIN_DIR/claude-rag"
+
+echo "✅ CLI installed at $BIN_DIR/claude-rag"
 
 # Check for Ollama
 if ! command -v ollama &> /dev/null; then
-    echo "⚠️  Warning: Ollama not found. Install from https://ollama.ai"
-    echo "   Then run: ollama pull nomic-embed-text"
+    echo "⚠️  Ollama not found. Install from https://ollama.ai"
+    echo "   macOS: brew install ollama"
+    echo "   Linux: curl https://ollama.ai/install.sh | sh"
+    echo ""
+    echo "   After installing, run: ollama pull nomic-embed-text"
 else
     echo "🤖 Pulling embedding model..."
-    ollama pull nomic-embed-text || echo "⚠️  Failed to pull model, do it manually: ollama pull nomic-embed-text"
+    ollama pull nomic-embed-text || echo "⚠️  Failed to pull model, run manually: ollama pull nomic-embed-text"
 fi
 
 # Add MCP server config (optional)
 if [ -f "${HOME}/.claude.json" ]; then
-    echo "🔌 MCP server configuration found at ~/.claude.json"
-    echo "   Add this to mcpServers:"
     echo ""
-    echo "    \"claude-rag\": {"
-    echo "      \"command\": \"uv\","
-    echo "      \"args\": [\"--directory\", \"${INSTALL_DIR}\", \"run\", \"python\", \"mcp_server.py\"]"
-    echo "    }"
+    echo "🔌 Found ~/.claude.json - Add this MCP server config:"
+    echo ""
+    echo "  \"claude-rag\": {"
+    echo "    \"command\": \"uv\","
+    echo "    \"args\": ["
+    echo "      \"--directory\", \"${INSTALL_DIR}\","
+    echo "      \"run\", \"python\", \"mcp_server.py\""
+    echo "    ]"
+    echo "  }"
     echo ""
 fi
 
@@ -80,7 +129,18 @@ echo "  claude-rag search \"your query\"       # Search memories"
 echo "  claude-rag web                       # Launch Web UI"
 echo "  claude-rag ui                        # Launch TUI"
 echo ""
-echo "🔧 Add ~/.local/bin to your PATH if not already:"
-echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
-echo ""
+
+# PATH check
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+    echo "⚠️  Add $BIN_DIR to your PATH:"
+    if [ "$OS_TYPE" = "macOS" ]; then
+        echo "   echo 'export PATH=\"$BIN_DIR:\$PATH\"' >> ~/.zshrc"
+        echo "   source ~/.zshrc"
+    else
+        echo "   echo 'export PATH=\"$BIN_DIR:\$PATH\"' >> ~/.bashrc"
+        echo "   source ~/.bashrc"
+    fi
+    echo ""
+fi
+
 echo "📖 Documentation: https://github.com/tarpediem/claude-code-rag"

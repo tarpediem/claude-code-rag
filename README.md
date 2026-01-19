@@ -37,38 +37,46 @@ Tested on AMD Radeon 890M (iGPU) with ROCm:
 
 ## 📦 Installation
 
-### 🚀 Easy Install (Choose One)
+### 🚀 Easy Install
 
-**Option 1: One-Liner (Recommended)**
+**Linux / macOS (Recommended)**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tarpediem/claude-code-rag/main/install.sh | bash
 ```
 
-**Option 2: Ask Claude Code**
+**Windows (PowerShell as Administrator)**
+```powershell
+iwr -useb https://raw.githubusercontent.com/tarpediem/claude-code-rag/main/install.ps1 | iex
+```
+
+**Or Ask Claude Code (All Platforms)**
 
 Copy this prompt into Claude Code and it will install everything for you:
 
 ```
-Please install Claude Code RAG for me:
+Please install Claude Code RAG for me. Adapt the installation for my operating system:
 
-1. Clone the repository to ~/.local/share/claude-code-rag
-2. Install dependencies using uv (or pip if uv not available)
-3. Create a symlink for the CLI at ~/.local/bin/claude-rag
-4. Pull the nomic-embed-text model with ollama (if ollama is installed)
+1. Clone https://github.com/tarpediem/claude-code-rag to the appropriate location:
+   - Linux: ~/.local/share/claude-code-rag
+   - macOS: ~/Library/Application Support/claude-code-rag
+   - Windows: %LOCALAPPDATA%\claude-code-rag
+
+2. Install dependencies using uv (preferred) or pip
+3. Create a CLI launcher appropriate for my OS
+4. Pull the nomic-embed-text model with ollama (if installed)
 5. Initialize the database
-6. Add the MCP server configuration to my ~/.claude.json
+6. Show me how to configure the MCP server in ~/.claude.json
 
 Repository: https://github.com/tarpediem/claude-code-rag
-
-After installation, show me how to use it.
 ```
 
-See [CLAUDE_INSTALL.md](CLAUDE_INSTALL.md) for more installation options.
+See [CLAUDE_INSTALL.md](CLAUDE_INSTALL.md) for detailed instructions and [PLATFORM_NOTES.md](PLATFORM_NOTES.md) for platform-specific configuration.
 
 ### Prerequisites
-- Python 3.10+
-- [Ollama](https://ollama.ai) installed and running
-- [uv](https://github.com/astral-sh/uv) (recommended) or pip
+- **Python 3.10+** ([Download](https://www.python.org/downloads/))
+- **Ollama** ([Download](https://ollama.ai/download))
+- **uv** (recommended, [Install](https://github.com/astral-sh/uv)) or pip
+- **Git** (usually pre-installed on Linux/macOS, [Windows download](https://git-scm.com/download/win))
 
 ### Manual Installation
 
