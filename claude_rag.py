@@ -188,9 +188,10 @@ def cmd_doctor(args):
         # Check collections
         try:
             client = chromadb.PersistentClient(path=CHROMA_PATH)
-            collections = client.list_collections()
-            print(f"  ✅ Collections: {len(collections)}")
-            for coll in collections:
+            collection_names = client.list_collections()
+            print(f"  ✅ Collections: {len(collection_names)}")
+            for coll_name in collection_names:
+                coll = client.get_collection(coll_name)
                 print(f"     - {coll.name}: {coll.count()} chunks")
         except Exception as e:
             print(f"  ❌ Error reading DB: {e}")

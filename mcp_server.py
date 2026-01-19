@@ -484,7 +484,7 @@ async def list_tools():
                     "compact": {
                         "type": "boolean",
                         "description": "Return compact results (title only, ~50 chars) to save tokens. Recommended for Claude Pro users. Default: false",
-                        "default": false
+                        "default": False
                     }
                 },
                 "required": ["query"]
