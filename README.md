@@ -7,9 +7,9 @@
 [![MCP Compatible](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-![Dashboard](assets/web-dashboard.png)
+![Demo](assets/demo.gif)
 
-_Modern dark neon interface with glassmorphism effects_
+_Modern Gemini-inspired UI with Material Icons Round, glassmorphism, and neon accents_
 
 ## ✨ Features
 
@@ -23,9 +23,9 @@ _Modern dark neon interface with glassmorphism effects_
 
 ### 🛠️ Interfaces
 - **🔌 MCP Integration** – Native Claude Code tools (13 tools available)
-- **🌐 Web Dashboard** – Modern dark neon UI with glassmorphism effects and Material Symbols icons
+- **🌐 Web Dashboard** – Gemini-inspired UI with Material Icons Round, color-coded badges, and professional glassmorphism
 - **💻 CLI** – Fast command-line interface for power users
-- **📟 TUI** – Interactive terminal UI with real-time search
+- **📟 TUI** – Interactive Textual-based terminal UI with real-time search
 
 ### ⚡ Performance
 Tested on AMD Radeon 890M (iGPU) with ROCm:
@@ -37,12 +37,43 @@ Tested on AMD Radeon 890M (iGPU) with ROCm:
 
 ## 📦 Installation
 
+### 🚀 Easy Install (Choose One)
+
+**Option 1: One-Liner (Recommended)**
+```bash
+curl -fsSL https://raw.githubusercontent.com/tarpediem/claude-code-rag/main/install.sh | bash
+```
+
+**Option 2: Ask Claude Code**
+
+Copy this prompt into Claude Code and it will install everything for you:
+
+```
+Please install Claude Code RAG for me:
+
+1. Clone the repository to ~/.local/share/claude-code-rag
+2. Install dependencies using uv (or pip if uv not available)
+3. Create a symlink for the CLI at ~/.local/bin/claude-rag
+4. Pull the nomic-embed-text model with ollama (if ollama is installed)
+5. Initialize the database
+6. Add the MCP server configuration to my ~/.claude.json
+
+Repository: https://github.com/tarpediem/claude-code-rag
+
+After installation, show me how to use it.
+```
+
+See [CLAUDE_INSTALL.md](CLAUDE_INSTALL.md) for more installation options.
+
 ### Prerequisites
 - Python 3.10+
 - [Ollama](https://ollama.ai) installed and running
 - [uv](https://github.com/astral-sh/uv) (recommended) or pip
 
-### Quick Start
+### Manual Installation
+
+<details>
+<summary>Click to expand manual installation steps</summary>
 
 ```bash
 # 1. Clone the repository
@@ -65,6 +96,8 @@ claude-rag init
 claude-rag index ~/your-docs/
 claude-rag search "how to configure something"
 ```
+
+</details>
 
 ---
 
@@ -126,34 +159,35 @@ claude-rag web
 ```
 
 **Design Features:**
-- 🎨 **Dark Neon Theme** – Cyan/indigo color scheme with mesh gradients
-- ✨ **Glassmorphism** – Frosted glass effects with backdrop blur
-- 🎯 **Material Symbols** – Google's Material Symbols Outlined icons
-- 📱 **Responsive Design** – Works on desktop, tablet, and mobile
-- 🌊 **Smooth Animations** – Hover effects and transitions
+- 🎨 **Gemini-Inspired** – Modern, compact layout inspired by professional AI dashboards
+- ✨ **Glassmorphism** – Subtle frosted glass effects with backdrop blur
+- 🎯 **Material Icons Round** – Google's rounded icon set for consistency
+- 🏷️ **Color-Coded Badges** – Visual memory type identification (cyan, violet, amber, etc.)
+- 📱 **Responsive Grid** – Adaptive layouts for all screen sizes
+- 🌊 **Smooth Interactions** – Hover effects, transitions, and reveal animations
 
 **Functional Features:**
-- 📊 **Dashboard** – Overview of all memories with type breakdown and visual analytics
-- 🔍 **Semantic Search** – Real-time search with type and scope filters
-- 📚 **Browse Memories** – Filter by type, scope, and source with delete capabilities
-- 📂 **Index Files** – Index files or directories with project/global scope selection
+- 📊 **Dashboard** – Clean stats cards with memory distribution charts and system health
+- 🔍 **Semantic Search** – Large search bar with pill-style filters and grid results
+- 📚 **Browse Memories** – Dual-row pill filters, color-coded badges, hover-to-delete
+- 📂 **Index Files** – Centered form with custom radio buttons and feature cards
 
 <table>
   <tr>
-    <td><img src="assets/web-dashboard.png" alt="Dashboard" /></td>
-    <td><img src="assets/web-search.png" alt="Search" /></td>
+    <td width="50%"><img src="assets/web-dashboard.png" alt="Dashboard" /></td>
+    <td width="50%"><img src="assets/web-search.png" alt="Search" /></td>
   </tr>
   <tr>
-    <td align="center"><em>Dashboard with memory analytics</em></td>
-    <td align="center"><em>Semantic search interface</em></td>
+    <td align="center"><em>📊 Dashboard with memory analytics</em></td>
+    <td align="center"><em>🔍 Semantic search with pill filters</em></td>
   </tr>
   <tr>
-    <td><img src="assets/web-memories.png" alt="Memories" /></td>
-    <td><img src="assets/web-index.png" alt="Index" /></td>
+    <td width="50%"><img src="assets/web-memories.png" alt="Memories" /></td>
+    <td width="50%"><img src="assets/web-index.png" alt="Index" /></td>
   </tr>
   <tr>
-    <td align="center"><em>Memory browser with filters</em></td>
-    <td align="center"><em>File indexing interface</em></td>
+    <td align="center"><em>📚 Memory browser with color-coded badges</em></td>
+    <td align="center"><em>📂 File indexing with feature cards</em></td>
   </tr>
 </table>
 
@@ -386,14 +420,16 @@ Version 0.9.3+ includes comprehensive security hardening:
 
 ## 📝 Recent Updates
 
-### v0.9.4 (2026-01-19) - Dark Neon UI Redesign
-- **Complete visual overhaul** with modern dark neon design
-- **Glassmorphism effects** with backdrop-filter blur and mesh gradients
-- **Material Symbols icons** replaced emoji icons for professional look
-- **Neon color scheme** with cyan/indigo glow effects
-- **Bento card design** with rounded corners and smooth transitions
-- **Improved typography** using Inter font family
-- **Enhanced mobile responsiveness** with proper media queries
+### v0.9.5 (2026-01-19) - Gemini-Inspired Professional Redesign
+- **Complete UI overhaul** inspired by modern Gemini designs
+- **Compact, dense layout** maximizing screen real estate
+- **Material Icons Round** throughout for professional appearance
+- **Color-coded badge system** (Context=cyan, Architecture=violet, Bugfix=amber, etc.)
+- **Refined glassmorphism** with subtle backdrop blur and dark gradients
+- **Professional typography** with Inter font and proper hierarchy
+- **Pill-style filters** replacing traditional dropdowns
+- **Grid-based responsive layouts** for all pages
+- **Hover effects** with smooth transitions and reveal animations
 
 ### v0.9.3 (2026-01-18) - Security Hardening
 - Comprehensive input validation and sanitization
