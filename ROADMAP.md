@@ -4,6 +4,24 @@
 
 Make claude-code-rag THE persistent memory solution for Claude Code: local-first, simple, and effective.
 
+## 2026 Update: Production-Ready RAG
+
+**Context**: Research shows 40-60% of RAG implementations fail in production due to:
+- Poor observability (can't debug retrieval failures)
+- Pure semantic search limitations (struggles with function names, paths)
+- No reranking (low precision on complex queries)
+- Context rot (memories drift, become stale)
+
+**New focus**: Phases 9-11 address these pain points with features users actually need:
+- **Hybrid search** (BM25 + semantic) for better precision
+- **Reranking** with cross-encoders for query relevance
+- **Observability** with query tracing and debug dashboards
+- **Memory relations** for knowledge graphs
+- **Session compression** with LLMs for token efficiency
+- **Proactive context injection** to reduce round-trips
+
+These features will make claude-code-rag production-grade, not just a prototype.
+
 ---
 
 ## Phase 1: Stabilization & Polish ✅
@@ -235,16 +253,100 @@ auto_capture:
 
 ---
 
-## Nice to Have (Backlog) 💭
+## Phase 9: Production-Ready RAG 🎯 (v0.10.0-0.11.0)
 
-- [ ] **Hybrid search**: Keyword + semantic combined
-- [ ] **Reranking**: Rerank results with dedicated model
-- [ ] **Knowledge graph**: Relations between memories
-- [ ] **Multi-user**: Separate memories per user
-- [ ] **Encryption**: Encrypt local DB
-- [ ] **Cloud sync**: Optional sync to server (self-hosted)
-- [ ] **MCP Resources**: Expose memories as MCP resources
+**Goal**: Address the 40-60% failure rate in production RAG systems with observability, hybrid search, and reranking.
+
+### Observability & Debugging 🔄
+- [ ] **Query tracing**: Log every retrieval with query → chunks → scores → used/not_used
+- [ ] **Structured logging**: JSON logs for analysis
+- [ ] **Debug dashboard**: Web UI panel showing last N queries with metrics
+- [ ] **Latency breakdown**: Track embedding time, search time, rerank time separately
+- [ ] **Quality feedback loop**: User can mark results as relevant/irrelevant
+
+### Hybrid Search 🔄
+- [ ] **BM25 integration**: Keyword search alongside semantic
+- [ ] **Fusion strategy**: Combine BM25 + vector scores (RRF - Reciprocal Rank Fusion)
+- [ ] **Query type detection**: Auto-detect if query needs keyword (function names, paths) vs semantic
+- [ ] **Configurable weights**: Balance between keyword and semantic per query
+
+### Reranking 🔄
+- [ ] **Cross-encoder model**: `ms-marco-MiniLM-L-6-v2` for reranking
+- [ ] **Two-stage retrieval**: Fast vector search (top 50) → precise reranking (top N)
+- [ ] **Optional reranking**: `rerank=true` parameter in `rag_search`
+- [ ] **Rerank cache**: Cache reranked results for identical queries
+
+### Memory Relations 🔄
+- [ ] **`relates_to` metadata**: Link memories together (bugfix → decision → architecture)
+- [ ] **Relation types**: `causes`, `fixes`, `implements`, `deprecates`, `supersedes`
+- [ ] **Graph traversal**: "Show me all decisions related to this bug"
+- [ ] **Backlinks**: When viewing a memory, see what references it
+
+---
+
+## Phase 10: Advanced Intelligence 🧠 (v0.12.0-0.14.0)
+
+**Goal**: Move from reactive retrieval to proactive, intelligent context management.
+
+### Session Compression with LLM 🔄
+- [ ] **LLM-based summarization**: Use Ollama to compress sessions before indexing
+- [ ] **Extract essence**: Decisions, insights, patterns (not verbatim transcript)
+- [ ] **Configurable compression**: `compress=true` in `rag_capture`
+- [ ] **Token efficiency**: Store 70% less data with better semantic density
+
+### Knowledge Graph 🔄
+- [ ] **Graph database integration**: ChromaDB → Neo4j or LanceDB with relations
+- [ ] **Visual graph explorer**: Web UI showing memory connections
+- [ ] **Path queries**: "What decisions led to this architecture?"
+- [ ] **Cluster detection**: Auto-group related memories
+
+### Dual-Agent Architecture (GAM-inspired) 🔄
+- [ ] **Memorizer agent**: Captures everything without filtering
+- [ ] **Researcher agent**: Intelligent retrieval at query time
+- [ ] **Separate collections**: `raw_memories` vs `curated_context`
+- [ ] **Anti-context-rot**: Researcher validates and refreshes stale context
+
+### Auto-Optimization 🔄
+- [ ] **Dynamic chunk size**: Adjust based on file type and content complexity
+- [ ] **Model switching**: Auto-select embedding model by language/domain
+- [ ] **Learning from feedback**: Track which retrievals were useful, adjust strategy
+- [ ] **A/B testing**: Compare chunk strategies, promote winner
+
+### Proactive Context Injection 🔄
+- [ ] **MCP hook**: Detect when Claude asks questions, auto-inject relevant context
+- [ ] **Context suggestions**: "I found 3 related memories, add them?"
+- [ ] **Pre-emptive search**: Analyze user message, search before Claude asks
+- [ ] **Smart batching**: Reduce round-trips by including related context upfront
+
+---
+
+## Phase 11: Multi-Modal & Beyond 🌐 (v1.5.0+)
+
+**Goal**: Support non-text data and advanced use cases.
+
+### Multi-Modal Support 🔄
+- [ ] **Diagram indexing**: Architecture diagrams → OCR + vision model embeddings
+- [ ] **Screenshot search**: UI mockups → searchable with vision models
+- [ ] **Video indexing**: Code review videos → transcription + key frame extraction
+- [ ] **Audio notes**: Voice memos → transcribe + index
+
+### Advanced Features 🔄
+- [ ] **Multi-user**: Separate memories per user (team collaboration)
+- [ ] **Encryption**: Encrypt local DB (LUKS or application-level)
+- [ ] **Cloud sync**: Optional sync to self-hosted server
+- [ ] **MCP Resources**: Expose memories as MCP resources (not just tools)
 - [ ] **MCP Prompts**: Predefined prompts for common workflows
+- [ ] **API server**: REST API for external integrations
+
+---
+
+## Backlog (Research/Experimental) 💭
+
+- [ ] **Fine-tuned embeddings**: Train custom embedding model on user's codebase
+- [ ] **Incremental learning**: Model adapts to user's terminology over time
+- [ ] **Cross-project insights**: "This bug also happened in project X"
+- [ ] **Time-travel**: "Show me the state of knowledge as of last week"
+- [ ] **Conflict resolution**: Detect contradictory memories, suggest resolution
 
 ---
 
@@ -263,12 +365,23 @@ auto_capture:
 | 0.8.0 | Phase 6 - Performance (batch embeddings, cache, metrics) ✅ |
 | 0.9.0 | Phase 7 - Enhanced CLI (init, doctor, serve, ui) ✅ |
 | 0.9.2 | Phase 7 - Web UI + TUI redesign ✅ |
-| 1.0.0 | Stable, tested, documented, on PyPI |
+| 0.9.3 | Bug fixes (ChromaDB 0.6.0, MCP boolean) ✅ |
+| **0.10.0** | **Phase 9 - Hybrid search + BM25** |
+| **0.10.5** | **Phase 9 - Reranking with cross-encoder** |
+| **0.11.0** | **Phase 9 - Observability dashboard + tracing** |
+| **0.11.5** | **Phase 9 - Memory relations + graph queries** |
+| **0.12.0** | **Phase 10 - Session compression with LLM** |
+| **0.13.0** | **Phase 10 - Knowledge graph + visualization** |
+| **0.14.0** | **Phase 10 - Dual-agent architecture (GAM)** |
+| **1.0.0** | **Stable, tested, documented, on PyPI** |
+| **1.5.0** | **Phase 11 - Multi-modal support** |
+| **2.0.0** | **Advanced features (encryption, cloud sync, API)** |
 
 ---
 
-## Immediate priorities
+## Immediate priorities (2026 Q1-Q2)
 
+### Done ✅
 1. ~~**Basic tests**~~ ✅
 2. ~~**Multi-formats**~~ ✅
 3. ~~**Markdown chunking**~~ ✅
@@ -282,20 +395,31 @@ auto_capture:
 11. ~~**`rag_export` tool**~~ ✅ — Multi-format export (AGENTS.md, CLAUDE.md, GEMINI.md...)
 12. ~~**Bidirectional sync**~~ ✅ — `rag_sync` + anti-loop protection
 13. ~~**Backup & Restore**~~ ✅ — `rag_backup` + `rag_restore`
-14. **PyPI package** — Phase 8
+
+### Next (Production-Ready Features)
+14. **Memory relations** — Add `relates_to` metadata (quick win, high value)
+15. **Query tracing** — Structured logs for debugging retrievals
+16. **Hybrid search (BM25 + semantic)** — Critical for function names, paths
+17. **Reranking** — Cross-encoder for precision (v0.10.5)
+18. **Debug dashboard** — Web UI panel for observability
+19. **Session compression** — LLM-based summarization before indexing
+20. **PyPI package** — Make it pip-installable (v1.0.0)
 
 ---
 
-**v0.9.2 shipped! 🚀**
+**v0.9.3 shipped! 🚀**
 
-New in v0.9.2:
-- Web UI dashboard (FastAPI + HTMX)
-- Redesigned TUI (OpenCode-inspired)
-- `claude-rag web` - Launch Web UI
-- Modern dark theme styling
+New in v0.9.3:
+- Fix ChromaDB 0.6.0 compatibility (list_collections API change)
+- Fix MCP Python boolean bug (false → False)
+- All 13 MCP tools tested and validated
+- Roadmap updated with production-ready features (Phases 9-11)
 
 Previous versions:
+- v0.9.2: Web UI dashboard (FastAPI + HTMX)
 - v0.9.0: Enhanced CLI (init, doctor, serve, ui)
 - v0.8.0: Performance (batch, cache, metrics)
 - v0.7.0: Backup/Restore
 - v0.6.0: Bidirectional sync
+
+**Next milestone: v0.10.0** — Hybrid search (BM25 + semantic) + Memory relations
